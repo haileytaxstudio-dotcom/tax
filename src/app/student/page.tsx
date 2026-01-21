@@ -1,74 +1,172 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { useStudent } from '@/context/StudentContext';
 import { ProgressCard } from '@/components/student/ProgressCard';
-import { WorksheetList } from '@/components/student/WorksheetList';
-import { mockStudents } from '@/data/mockStudents';
-import { mockWorksheets } from '@/data/mockWorksheets';
-import { mockSubmissions } from '@/data/mockSubmissions';
-import { StudentWorksheetStatus } from '@/types';
+import { Card, CardContent, Badge } from '@/components/common';
 
-// 현재 로그인한 학습자 (목업)
-const currentStudent = mockStudents[0]; // 김민준
+interface WorksheetStatus {
+  worksheetId: string;
+  worksheetTitle: string;
+  description: string;
+  fileUrl: string;
+  dayOffset: number;
+  status: 'locked' | 'available' | 'submitted' | 'confirmed';
+  submittedAt?: string;
+}
 
-function getWorksheetStatuses(): StudentWorksheetStatus[] {
-  const studentSubmissions = mockSubmissions.filter(
-    (s) => s.studentId === currentStudent.id
-  );
-
-  return mockWorksheets.map((worksheet) => {
-    const submission = studentSubmissions.find((s) => s.worksheetId === worksheet.id);
-
-    let status: StudentWorksheetStatus['status'];
-    if (submission) {
-      status = submission.status === 'confirmed' ? 'confirmed' : 'submitted';
-    } else {
-      // 간단한 로직: 이전 학습지가 모두 제출되었으면 available
-      const worksheetIndex = mockWorksheets.findIndex((w) => w.id === worksheet.id);
-      const previousWorksheets = mockWorksheets.slice(0, worksheetIndex);
-      const allPreviousSubmitted = previousWorksheets.every((pw) =>
-        studentSubmissions.some((s) => s.worksheetId === pw.id)
-      );
-      status = allPreviousSubmitted ? 'available' : 'locked';
-    }
-
-    return {
-      worksheetId: worksheet.id,
-      worksheetTitle: worksheet.title,
-      status,
-      submittedAt: submission?.submittedAt
-        ? new Date(submission.submittedAt).toLocaleDateString('ko-KR')
-        : undefined,
-    };
-  });
+interface WorksheetData {
+  worksheets: WorksheetStatus[];
+  progress: number;
+  completedCount: number;
+  totalCount: number;
+  daysPassed: number;
 }
 
 export default function StudentDashboard() {
-  const worksheetStatuses = getWorksheetStatuses();
-  const completedCount = worksheetStatuses.filter(
-    (w) => w.status === 'submitted' || w.status === 'confirmed'
-  ).length;
-  const averageProgress = Math.round(
-    mockStudents.reduce((sum, s) => sum + s.progress, 0) / mockStudents.length
-  );
+  const { student } = useStudent();
+  const [data, setData] = useState<WorksheetData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (student) {
+      fetchWorksheets();
+    }
+  }, [student]);
+
+  const fetchWorksheets = async () => {
+    if (!student) return;
+
+    try {
+      const response = await fetch(`/api/student/worksheets?student_id=${student.id}`);
+      if (response.ok) {
+        const result = await response.json();
+        setData(result);
+      }
+    } catch (error) {
+      console.error('학습지 로딩 오류:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!student) {
+    return null;
+  }
+
+  if (loading) {
+    return (
+      <div className="text-center py-8 text-gray-500">로딩 중...</div>
+    );
+  }
+
+  const worksheets = data?.worksheets || [];
+  const progress = data?.progress || 0;
+  const completedCount = data?.completedCount || 0;
+  const totalCount = data?.totalCount || 0;
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900 mb-2">
-          안녕하세요, {currentStudent.name}님
+          안녕하세요, {student.name}님
         </h1>
-        <p className="text-gray-500">세무 기초 과정을 학습 중입니다.</p>
+        <p className="text-gray-500">
+          {student.curriculum?.name || '세무 학습 과정'}을 학습 중입니다.
+        </p>
       </div>
 
       <ProgressCard
-        myProgress={currentStudent.progress}
-        averageProgress={averageProgress}
+        myProgress={progress}
+        averageProgress={0}
         completedCount={completedCount}
-        totalCount={mockWorksheets.length}
+        totalCount={totalCount}
       />
 
       <div>
         <h2 className="text-lg font-semibold text-gray-900 mb-4">학습지 목록</h2>
-        <WorksheetList worksheets={worksheetStatuses} />
+
+        {worksheets.length === 0 ? (
+          <Card>
+            <CardContent className="text-center py-8">
+              <p className="text-gray-500">등록된 학습지가 없습니다.</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-3">
+            {worksheets.map((worksheet) => (
+              <Card key={worksheet.worksheetId}>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-medium text-gray-900">
+                          {worksheet.worksheetTitle}
+                        </h3>
+                        <StatusBadge status={worksheet.status} />
+                      </div>
+                      {worksheet.description && (
+                        <p className="text-sm text-gray-500">{worksheet.description}</p>
+                      )}
+                      {worksheet.submittedAt && (
+                        <p className="text-xs text-gray-400 mt-1">
+                          제출일: {new Date(worksheet.submittedAt).toLocaleDateString('ko-KR')}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {worksheet.fileUrl && worksheet.status !== 'locked' && (
+                        <a
+                          href={worksheet.fileUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-3 py-1.5 text-sm text-blue-600 hover:text-blue-700 border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors"
+                        >
+                          학습지
+                        </a>
+                      )}
+                      {worksheet.status === 'available' && (
+                        <Link
+                          href={`/student/submit/${worksheet.worksheetId}`}
+                          className="px-3 py-1.5 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+                        >
+                          제출하기
+                        </Link>
+                      )}
+                      {(worksheet.status === 'submitted' || worksheet.status === 'confirmed') && (
+                        <Link
+                          href={`/student/submit/${worksheet.worksheetId}`}
+                          className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                        >
+                          수정하기
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
     </div>
+  );
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const statusConfig: Record<string, { text: string; className: string }> = {
+    locked: { text: '미공개', className: 'bg-gray-100 text-gray-600' },
+    available: { text: '미제출', className: 'bg-yellow-100 text-yellow-700' },
+    submitted: { text: '제출완료', className: 'bg-blue-100 text-blue-700' },
+    confirmed: { text: '확인완료', className: 'bg-green-100 text-green-700' },
+  };
+
+  const config = statusConfig[status] || statusConfig.locked;
+
+  return (
+    <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${config.className}`}>
+      {config.text}
+    </span>
   );
 }

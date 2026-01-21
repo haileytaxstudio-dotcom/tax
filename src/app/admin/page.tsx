@@ -1,28 +1,85 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import { Header, Card, CardHeader, CardTitle, CardContent, ProgressBar, Badge } from '@/components/common';
 import { DashboardStats } from '@/components/admin/DashboardStats';
-import { mockStudents } from '@/data/mockStudents';
-import { mockSubmissions } from '@/data/mockSubmissions';
 import { DashboardStats as DashboardStatsType } from '@/types';
 
-function calculateStats(): DashboardStatsType {
-  const totalStudents = mockStudents.length;
-  const activeStudents = mockStudents.filter((s) => s.status === 'active').length;
-  const averageProgress = Math.round(
-    mockStudents.reduce((sum, s) => sum + s.progress, 0) / totalStudents
-  );
-  const pendingSubmissions = mockSubmissions.filter((s) => s.status === 'pending').length;
-
-  return {
-    totalStudents,
-    activeStudents,
-    averageProgress,
-    pendingSubmissions,
-  };
+interface DashboardData {
+  stats: DashboardStatsType;
+  recentStudents: Array<{
+    id: string;
+    name: string;
+    phone: string;
+    status: string;
+    progress?: number;
+  }>;
+  recentSubmissions: Array<{
+    id: string;
+    student: { name: string };
+    worksheet: { title: string };
+    status: string;
+    submitted_at: string;
+  }>;
 }
 
 export default function AdminDashboard() {
-  const stats = calculateStats();
-  const recentStudents = mockStudents.slice(0, 5);
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      const response = await fetch('/api/dashboard');
+      if (!response.ok) throw new Error('데이터를 불러오는데 실패했습니다.');
+      const result = await response.json();
+      setData(result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '오류가 발생했습니다.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div>
+        <Header title="대시보드" />
+        <div className="p-6 flex items-center justify-center">
+          <p className="text-gray-500">로딩 중...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div>
+        <Header title="대시보드" />
+        <div className="p-6">
+          <Card>
+            <CardContent className="text-center py-8">
+              <p className="text-red-500">{error}</p>
+              <p className="text-sm text-gray-500 mt-2">
+                Supabase 연결을 확인해주세요.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  const stats = data?.stats || {
+    totalStudents: 0,
+    activeStudents: 0,
+    averageProgress: 0,
+    pendingSubmissions: 0,
+  };
 
   return (
     <div>
@@ -36,50 +93,56 @@ export default function AdminDashboard() {
               <CardTitle>최근 학습자</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {recentStudents.map((student) => (
-                  <div
-                    key={student.id}
-                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-                  >
-                    <div>
-                      <p className="font-medium text-gray-900">{student.name}</p>
-                      <p className="text-sm text-gray-500">{student.phone}</p>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="w-24">
-                        <ProgressBar progress={student.progress} showLabel={false} size="sm" />
+              {data?.recentStudents && data.recentStudents.length > 0 ? (
+                <div className="space-y-4">
+                  {data.recentStudents.map((student) => (
+                    <div
+                      key={student.id}
+                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                    >
+                      <div>
+                        <p className="font-medium text-gray-900">{student.name}</p>
+                        <p className="text-sm text-gray-500">{student.phone}</p>
                       </div>
-                      <Badge status={student.status} />
+                      <div className="flex items-center gap-4">
+                        <Badge status={student.status} />
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-center text-gray-500 py-4">등록된 학습자가 없습니다.</p>
+              )}
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle>진행률 분포</CardTitle>
+              <CardTitle>최근 제출</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {[
-                  { label: '100% 완료', count: mockStudents.filter((s) => s.progress === 100).length, color: 'bg-green-500' },
-                  { label: '75% 이상', count: mockStudents.filter((s) => s.progress >= 75 && s.progress < 100).length, color: 'bg-blue-500' },
-                  { label: '50% 이상', count: mockStudents.filter((s) => s.progress >= 50 && s.progress < 75).length, color: 'bg-yellow-500' },
-                  { label: '25% 이상', count: mockStudents.filter((s) => s.progress >= 25 && s.progress < 50).length, color: 'bg-orange-500' },
-                  { label: '25% 미만', count: mockStudents.filter((s) => s.progress < 25).length, color: 'bg-red-500' },
-                ].map((item) => (
-                  <div key={item.label} className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className={`w-3 h-3 rounded-full ${item.color}`} />
-                      <span className="text-sm text-gray-600">{item.label}</span>
+              {data?.recentSubmissions && data.recentSubmissions.length > 0 ? (
+                <div className="space-y-4">
+                  {data.recentSubmissions.map((submission) => (
+                    <div
+                      key={submission.id}
+                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                    >
+                      <div>
+                        <p className="font-medium text-gray-900">
+                          {submission.student?.name}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          {submission.worksheet?.title}
+                        </p>
+                      </div>
+                      <Badge status={submission.status} />
                     </div>
-                    <span className="font-medium text-gray-900">{item.count}명</span>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-center text-gray-500 py-4">제출된 답안이 없습니다.</p>
+              )}
             </CardContent>
           </Card>
         </div>

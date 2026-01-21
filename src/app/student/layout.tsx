@@ -1,8 +1,11 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { StudentProvider, useStudent } from '@/context/StudentContext';
+import { Button } from '@/components/common';
 
 const studentNavItems = [
   {
@@ -35,12 +38,83 @@ const studentNavItems = [
   },
 ];
 
-export default function StudentLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+function StudentLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { student, loading, login, logout } = useStudent();
+  const [phone, setPhone] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [loginLoading, setLoginLoading] = useState(false);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError('');
+    setLoginLoading(true);
+
+    const success = await login(phone);
+    if (!success) {
+      setLoginError('등록되지 않은 전화번호입니다.');
+    }
+    setLoginLoading(false);
+  };
+
+  const handleLogout = () => {
+    logout();
+    router.push('/');
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <p className="text-gray-500">로딩 중...</p>
+      </div>
+    );
+  }
+
+  if (!student) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md">
+          <h1 className="text-2xl font-bold text-gray-900 text-center mb-2">
+            학습자 로그인
+          </h1>
+          <p className="text-gray-500 text-center mb-6">
+            등록된 전화번호로 로그인하세요
+          </p>
+
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                전화번호
+              </label>
+              <input
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="01012345678"
+                required
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+
+            {loginError && (
+              <p className="text-red-500 text-sm">{loginError}</p>
+            )}
+
+            <Button type="submit" className="w-full" disabled={loginLoading}>
+              {loginLoading ? '확인 중...' : '로그인'}
+            </Button>
+          </form>
+
+          <div className="mt-6 text-center">
+            <Link href="/" className="text-sm text-gray-500 hover:text-gray-700">
+              홈으로 돌아가기
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -50,12 +124,15 @@ export default function StudentLayout({
             <Link href="/student" className="text-xl font-bold text-gray-900">
               세무 학습
             </Link>
-            <Link
-              href="/"
-              className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
-            >
-              로그아웃
-            </Link>
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-gray-600">{student.name}님</span>
+              <button
+                onClick={handleLogout}
+                className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                로그아웃
+              </button>
+            </div>
           </div>
           <nav className="flex gap-1 -mb-px">
             {studentNavItems.map((item) => {
@@ -81,5 +158,17 @@ export default function StudentLayout({
       </header>
       <main className="max-w-4xl mx-auto px-4 py-6">{children}</main>
     </div>
+  );
+}
+
+export default function StudentLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <StudentProvider>
+      <StudentLayoutContent>{children}</StudentLayoutContent>
+    </StudentProvider>
   );
 }

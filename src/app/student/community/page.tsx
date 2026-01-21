@@ -1,40 +1,58 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import { Card, CardContent, ProgressBar } from '@/components/common';
-import { CommunityFeed } from '@/components/student/CommunityFeed';
-import { mockStudents } from '@/data/mockStudents';
-import { mockSubmissions } from '@/data/mockSubmissions';
-import { mockWorksheets } from '@/data/mockWorksheets';
+import { useStudent } from '@/context/StudentContext';
 
-// 다른 학습자들의 제출 목록 생성 (현재 학습자 제외)
-const currentStudentId = 'student-1';
-
-const communitySubmissions = mockSubmissions
-  .filter((s) => s.studentId !== currentStudentId && s.status !== 'pending')
-  .map((submission) => {
-    const student = mockStudents.find((s) => s.id === submission.studentId);
-    const worksheet = mockWorksheets.find((w) => w.id === submission.worksheetId);
-    return {
-      id: submission.id,
-      studentName: student?.name || '익명',
-      worksheetTitle: worksheet?.title || '학습지',
-      submittedAt: submission.submittedAt || '',
-      progress: student?.progress || 0,
-    };
-  })
-  .sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
-
-// 진행률 분포 계산
-const progressDistribution = [
-  { range: '100%', count: mockStudents.filter((s) => s.progress === 100).length },
-  { range: '75-99%', count: mockStudents.filter((s) => s.progress >= 75 && s.progress < 100).length },
-  { range: '50-74%', count: mockStudents.filter((s) => s.progress >= 50 && s.progress < 75).length },
-  { range: '25-49%', count: mockStudents.filter((s) => s.progress >= 25 && s.progress < 50).length },
-  { range: '0-24%', count: mockStudents.filter((s) => s.progress < 25).length },
-];
+interface CommunityData {
+  totalStudents: number;
+  averageProgress: number;
+  progressDistribution: Array<{ range: string; count: number }>;
+  recentSubmissions: Array<{
+    id: string;
+    studentName: string;
+    worksheetTitle: string;
+    submittedAt: string;
+  }>;
+}
 
 export default function CommunityPage() {
-  const averageProgress = Math.round(
-    mockStudents.reduce((sum, s) => sum + s.progress, 0) / mockStudents.length
-  );
+  const { student } = useStudent();
+  const [data, setData] = useState<CommunityData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchCommunityData();
+  }, []);
+
+  const fetchCommunityData = async () => {
+    try {
+      const response = await fetch('/api/community');
+      if (response.ok) {
+        const result = await response.json();
+        setData(result);
+      }
+    } catch (error) {
+      console.error('커뮤니티 데이터 로딩 오류:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!student) {
+    return null;
+  }
+
+  if (loading) {
+    return (
+      <div className="text-center py-8 text-gray-500">로딩 중...</div>
+    );
+  }
+
+  const totalStudents = data?.totalStudents || 0;
+  const averageProgress = data?.averageProgress || 0;
+  const progressDistribution = data?.progressDistribution || [];
+  const recentSubmissions = data?.recentSubmissions || [];
 
   return (
     <div className="space-y-6">
@@ -57,7 +75,7 @@ export default function CommunityPage() {
               </div>
               <div className="pt-4 border-t border-gray-100">
                 <p className="text-sm text-gray-500">
-                  총 {mockStudents.length}명의 학습자가 참여 중입니다.
+                  총 {totalStudents}명의 학습자가 참여 중입니다.
                 </p>
               </div>
             </div>
@@ -76,7 +94,7 @@ export default function CommunityPage() {
                       <div
                         className="bg-blue-500 h-2 rounded-full"
                         style={{
-                          width: `${(item.count / mockStudents.length) * 100}%`,
+                          width: totalStudents > 0 ? `${(item.count / totalStudents) * 100}%` : '0%',
                         }}
                       />
                     </div>
@@ -91,8 +109,24 @@ export default function CommunityPage() {
 
       <div>
         <h2 className="text-lg font-semibold text-gray-900 mb-4">최근 제출</h2>
-        {communitySubmissions.length > 0 ? (
-          <CommunityFeed submissions={communitySubmissions} />
+        {recentSubmissions.length > 0 ? (
+          <div className="space-y-3">
+            {recentSubmissions.map((submission) => (
+              <Card key={submission.id}>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium text-gray-900">{submission.studentName}</p>
+                      <p className="text-sm text-gray-500">{submission.worksheetTitle}</p>
+                    </div>
+                    <span className="text-sm text-gray-400">
+                      {new Date(submission.submittedAt).toLocaleDateString('ko-KR')}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         ) : (
           <Card>
             <CardContent className="text-center py-8">

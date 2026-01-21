@@ -72,11 +72,14 @@ export async function POST(request: NextRequest) {
 
     const data = await response.json();
 
-    // 상태 코드에 따른 응답 처리
-    if (data.status === 1) {
+    console.log('DirectSend API 응답:', JSON.stringify(data));
+
+    // 상태 코드에 따른 응답 처리 (문자열 또는 숫자 "1" 모두 성공)
+    const status = String(data.status);
+    if (status === '1') {
       return NextResponse.json({
         success: true,
-        message: '알림톡 발송이 요청되었습니다.',
+        message: data.message || '알림톡 발송이 요청되었습니다.',
         data,
       });
     } else {
