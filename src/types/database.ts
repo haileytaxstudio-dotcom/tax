@@ -133,7 +133,7 @@ export interface Database {
           id: string;
           student_id: string;
           template_no: string;
-          message_type: 'start' | 'worksheet' | 'reminder';
+          message_type: 'start' | 'worksheet' | 'reminder' | 'confirm' | 'complete';
           status: 'success' | 'failed';
           response: Json | null;
           created_at: string;
@@ -142,7 +142,7 @@ export interface Database {
           id?: string;
           student_id: string;
           template_no: string;
-          message_type: 'start' | 'worksheet' | 'reminder';
+          message_type: 'start' | 'worksheet' | 'reminder' | 'confirm' | 'complete';
           status: 'success' | 'failed';
           response?: Json | null;
           created_at?: string;
@@ -151,7 +151,7 @@ export interface Database {
           id?: string;
           student_id?: string;
           template_no?: string;
-          message_type?: 'start' | 'worksheet' | 'reminder';
+          message_type?: 'start' | 'worksheet' | 'reminder' | 'confirm' | 'complete';
           status?: 'success' | 'failed';
           response?: Json | null;
           created_at?: string;

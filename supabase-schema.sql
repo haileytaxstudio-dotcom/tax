@@ -49,7 +49,7 @@ CREATE TABLE kakao_logs (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   student_id UUID REFERENCES students(id) ON DELETE CASCADE,
   template_no VARCHAR(50) NOT NULL,
-  message_type VARCHAR(20) CHECK (message_type IN ('start', 'worksheet', 'reminder')),
+  message_type VARCHAR(20) CHECK (message_type IN ('start', 'worksheet', 'reminder', 'confirm', 'complete')),
   status VARCHAR(20) CHECK (status IN ('success', 'failed')),
   response JSONB,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
