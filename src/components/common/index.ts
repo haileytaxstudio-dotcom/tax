@@ -4,3 +4,4 @@ export { Sidebar } from './Sidebar';
 export { Header } from './Header';
 export { Badge } from './Badge';
 export { ProgressBar } from './ProgressBar';
+export { FileUpload } from './FileUpload';

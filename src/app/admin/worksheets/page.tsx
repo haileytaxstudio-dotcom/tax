@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Header, Button, Card, CardContent } from '@/components/common';
+import { Header, Button, Card, CardContent, FileUpload } from '@/components/common';
 
 interface Worksheet {
   id: string;
@@ -283,13 +283,13 @@ export default function WorksheetsPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">파일 URL</label>
-                <input
-                  type="url"
-                  value={formData.file_url}
-                  onChange={(e) => setFormData({ ...formData, file_url: e.target.value })}
-                  placeholder="https://example.com/worksheet.pdf"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                <label className="block text-sm font-medium text-gray-700 mb-1">학습지 파일</label>
+                <FileUpload
+                  folder="worksheets"
+                  accept=".pdf,.doc,.docx,.hwp,.ppt,.pptx"
+                  currentUrl={formData.file_url}
+                  label="파일 선택"
+                  onUpload={(url) => setFormData({ ...formData, file_url: url })}
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">

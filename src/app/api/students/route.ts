@@ -90,5 +90,52 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
+  // 학습자 등록 완료 후 알림톡 발송 (첫 자료 발송 시 멘트)
+  await sendWelcomeNotification(supabase, data);
+
   return NextResponse.json(data, { status: 201 });
+}
+
+// 환영 알림톡 발송
+async function sendWelcomeNotification(
+  supabase: ReturnType<typeof createServerSupabaseClient>,
+  student: { id: string; name: string; phone: string }
+) {
+  const templateNo = process.env.KAKAO_TEMPLATE_START;
+
+  if (!templateNo) {
+    console.log('KAKAO_TEMPLATE_START 환경변수가 설정되지 않았습니다.');
+    return;
+  }
+
+  try {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/kakao/send`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        templateNo,
+        receivers: [
+          {
+            name: student.name,
+            mobile: student.phone,
+          },
+        ],
+      }),
+    });
+
+    const result = await response.json();
+
+    // 발송 로그 저장
+    await supabase.from('kakao_logs').insert({
+      student_id: student.id,
+      template_no: templateNo,
+      message_type: 'start',
+      status: result.success ? 'success' : 'failed',
+      response: result,
+    });
+
+    console.log('환영 알림톡 발송 결과:', result);
+  } catch (error) {
+    console.error('환영 알림톡 발송 오류:', error);
+  }
 }

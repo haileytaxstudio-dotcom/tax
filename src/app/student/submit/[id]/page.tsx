@@ -4,7 +4,7 @@ import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useStudent } from '@/context/StudentContext';
-import { Card, CardContent, Button } from '@/components/common';
+import { Card, CardContent, Button, FileUpload } from '@/components/common';
 
 interface SubmitPageProps {
   params: Promise<{
@@ -56,6 +56,11 @@ export default function SubmitPage({ params }: SubmitPageProps) {
     e.preventDefault();
 
     if (!student || !worksheet) return;
+
+    if (!formData.file_url) {
+      alert('답안 파일을 업로드해주세요.');
+      return;
+    }
 
     setSubmitting(true);
 
@@ -123,18 +128,18 @@ export default function SubmitPage({ params }: SubmitPageProps) {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                답안 파일 URL
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                답안 파일 *
               </label>
-              <input
-                type="url"
-                value={formData.file_url}
-                onChange={(e) => setFormData({ ...formData, file_url: e.target.value })}
-                placeholder="https://drive.google.com/... 또는 이미지 URL"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              <FileUpload
+                folder="submissions"
+                accept=".pdf,.doc,.docx,.hwp,.jpg,.jpeg,.png,.gif"
+                currentUrl={formData.file_url}
+                label="답안 파일 선택"
+                onUpload={(url) => setFormData({ ...formData, file_url: url })}
               />
-              <p className="text-xs text-gray-500 mt-1">
-                Google Drive, Dropbox 등에 업로드한 파일의 공유 링크를 입력해주세요.
+              <p className="text-xs text-gray-500 mt-2">
+                PDF, Word, 한글, 이미지 파일을 업로드할 수 있습니다.
               </p>
             </div>
 
@@ -157,7 +162,7 @@ export default function SubmitPage({ params }: SubmitPageProps) {
                   취소
                 </Button>
               </Link>
-              <Button type="submit" disabled={submitting}>
+              <Button type="submit" disabled={submitting || !formData.file_url}>
                 {submitting ? '제출 중...' : '제출하기'}
               </Button>
             </div>
