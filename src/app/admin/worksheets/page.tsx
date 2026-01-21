@@ -9,6 +9,7 @@ interface Worksheet {
   description: string;
   file_url: string;
   day_offset: number;
+  send_time: string;
   reminder_hours: number;
   curriculum_id: string;
 }
@@ -31,6 +32,7 @@ export default function WorksheetsPage() {
     description: '',
     file_url: '',
     day_offset: 1,
+    send_time: '09:00',
     reminder_hours: 24,
     curriculum_id: '',
   });
@@ -122,6 +124,7 @@ export default function WorksheetsPage() {
       description: worksheet.description || '',
       file_url: worksheet.file_url || '',
       day_offset: worksheet.day_offset,
+      send_time: worksheet.send_time || '09:00',
       reminder_hours: worksheet.reminder_hours,
       curriculum_id: worksheet.curriculum_id,
     });
@@ -136,6 +139,7 @@ export default function WorksheetsPage() {
       description: '',
       file_url: '',
       day_offset: worksheets.length + 1,
+      send_time: '09:00',
       reminder_hours: 24,
       curriculum_id: selectedCurriculum,
     });
@@ -148,6 +152,7 @@ export default function WorksheetsPage() {
       description: '',
       file_url: '',
       day_offset: worksheets.length + 1,
+      send_time: '09:00',
       reminder_hours: 24,
       curriculum_id: selectedCurriculum,
     });
@@ -233,6 +238,7 @@ export default function WorksheetsPage() {
                             )}
                             <div className="flex gap-4 mt-2 text-xs text-gray-400">
                               <span>발송일: D+{worksheet.day_offset}</span>
+                              <span>발송시간: {worksheet.send_time || '09:00'}</span>
                               <span>리마인더: {worksheet.reminder_hours}시간 후</span>
                             </div>
                           </div>
@@ -292,7 +298,7 @@ export default function WorksheetsPage() {
                   onUpload={(url) => setFormData({ ...formData, file_url: url })}
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">발송일 (D+N) *</label>
                   <input
@@ -304,6 +310,17 @@ export default function WorksheetsPage() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                   <p className="text-xs text-gray-500 mt-1">학습 시작일 기준</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">발송 시간 *</label>
+                  <input
+                    type="time"
+                    value={formData.send_time}
+                    onChange={(e) => setFormData({ ...formData, send_time: e.target.value })}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">알림톡 발송</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">리마인더 (시간) *</label>

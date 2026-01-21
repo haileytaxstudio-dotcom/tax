@@ -26,6 +26,7 @@ CREATE TABLE worksheets (
   description TEXT DEFAULT '',
   file_url TEXT DEFAULT '',
   day_offset INTEGER NOT NULL DEFAULT 0,
+  send_time TIME DEFAULT '09:00',
   reminder_hours INTEGER DEFAULT 48,
   order_num INTEGER NOT NULL DEFAULT 1,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()

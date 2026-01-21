@@ -33,13 +33,14 @@ export async function PUT(
   const supabase = createServerSupabaseClient();
   const body = await request.json();
 
-  const { title, description, file_url, day_offset, reminder_hours, order_num } = body;
+  const { title, description, file_url, day_offset, send_time, reminder_hours, order_num } = body;
 
   const updateData: Record<string, unknown> = {};
   if (title !== undefined) updateData.title = title;
   if (description !== undefined) updateData.description = description;
   if (file_url !== undefined) updateData.file_url = file_url;
   if (day_offset !== undefined) updateData.day_offset = day_offset;
+  if (send_time !== undefined) updateData.send_time = send_time;
   if (reminder_hours !== undefined) updateData.reminder_hours = reminder_hours;
   if (order_num !== undefined) updateData.order_num = order_num;
 

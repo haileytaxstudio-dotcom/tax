@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
   const supabase = createServerSupabaseClient();
   const body = await request.json();
 
-  const { curriculum_id, title, description, file_url, day_offset, reminder_hours, order_num } = body;
+  const { curriculum_id, title, description, file_url, day_offset, send_time, reminder_hours, order_num } = body;
 
   if (!curriculum_id || !title || day_offset === undefined) {
     return NextResponse.json(
@@ -49,6 +49,7 @@ export async function POST(request: NextRequest) {
       description: description || '',
       file_url: file_url || '',
       day_offset,
+      send_time: send_time || '09:00',
       reminder_hours: reminder_hours || 48,
       order_num: order_num || 1,
     })

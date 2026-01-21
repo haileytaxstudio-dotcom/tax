@@ -69,6 +69,7 @@ export interface Database {
           description: string;
           file_url: string;
           day_offset: number;
+          send_time: string;
           reminder_hours: number;
           order_num: number;
           created_at: string;
@@ -80,6 +81,7 @@ export interface Database {
           description?: string;
           file_url?: string;
           day_offset: number;
+          send_time?: string;
           reminder_hours?: number;
           order_num: number;
           created_at?: string;
@@ -91,6 +93,7 @@ export interface Database {
           description?: string;
           file_url?: string;
           day_offset?: number;
+          send_time?: string;
           reminder_hours?: number;
           order_num?: number;
           created_at?: string;
