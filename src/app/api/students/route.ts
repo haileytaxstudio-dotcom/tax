@@ -112,6 +112,8 @@ async function sendWelcomeNotification(
   }
 
   try {
+    // note1: 버튼 URL 경로 (학습 현황 페이지)
+    // note3: 학습자 이름
     const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/kakao/send`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -121,6 +123,8 @@ async function sendWelcomeNotification(
           {
             name: student.name,
             mobile: student.phone,
+            note1: 'student',
+            note3: student.name,
           },
         ],
       }),

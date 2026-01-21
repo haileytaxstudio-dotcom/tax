@@ -174,6 +174,11 @@ async function sendKakaoNotification(
   }
 
   try {
+    // note1: 버튼 URL 경로 (제출 페이지)
+    // note2: 학습지 제목
+    // note3: 학습자 이름
+    const submitPath = worksheet ? `student/submit/${worksheet.id}` : '';
+
     const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/kakao/send`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -183,8 +188,9 @@ async function sendKakaoNotification(
           {
             name: student.name,
             mobile: student.phone,
-            note1: worksheet?.title || '',
-            note2: worksheet?.description || '',
+            note1: submitPath,
+            note2: worksheet?.title || '',
+            note3: student.name,
           },
         ],
       }),

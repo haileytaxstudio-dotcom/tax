@@ -89,7 +89,7 @@ async function checkCourseCompletion(
 async function sendKakaoNotification(
   student: { id: string; name: string; phone: string },
   messageType: 'confirm' | 'complete',
-  worksheet: { title: string; description?: string }
+  worksheet: { id?: string; title: string; description?: string }
 ): Promise<void> {
   const templateNo = messageType === 'confirm'
     ? process.env.KAKAO_TEMPLATE_CONFIRM
@@ -100,6 +100,9 @@ async function sendKakaoNotification(
   const supabase = createServerSupabaseClient();
 
   try {
+    // note1: 버튼 URL 경로 (학습 현황 페이지)
+    // note2: 학습지 제목
+    // note3: 학습자 이름
     const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/kakao/send`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -109,8 +112,9 @@ async function sendKakaoNotification(
           {
             name: student.name,
             mobile: student.phone,
-            note1: worksheet.title,
-            note2: worksheet.description || '',
+            note1: 'student',
+            note2: worksheet.title,
+            note3: student.name,
           },
         ],
       }),
