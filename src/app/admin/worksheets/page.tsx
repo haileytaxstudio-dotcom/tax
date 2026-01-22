@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Header, Button, Card, CardContent, FileUpload } from '@/components/common';
+import { Header, Button, Card, CardContent } from '@/components/common';
 
 interface Worksheet {
   id: string;
@@ -289,14 +289,15 @@ export default function WorksheetsPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">학습지 파일</label>
-                <FileUpload
-                  folder="worksheets"
-                  accept=".pdf,.doc,.docx,.hwp,.ppt,.pptx"
-                  currentUrl={formData.file_url}
-                  label="파일 선택"
-                  onUpload={(url) => setFormData({ ...formData, file_url: url })}
+                <label className="block text-sm font-medium text-gray-700 mb-1">학습지 파일 URL</label>
+                <input
+                  type="url"
+                  value={formData.file_url}
+                  onChange={(e) => setFormData({ ...formData, file_url: e.target.value })}
+                  placeholder="https://drive.google.com/... 또는 파일 URL"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
+                <p className="text-xs text-gray-500 mt-1">구글 드라이브, 드롭박스 등 파일 링크 입력</p>
               </div>
               <div className="grid grid-cols-3 gap-4">
                 <div>
