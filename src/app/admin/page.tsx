@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Header, Card, CardHeader, CardTitle, CardContent, ProgressBar, Badge } from '@/components/common';
+import { Header, Card, CardHeader, CardTitle, CardContent, ProgressBar, Badge, Button } from '@/components/common';
 import { DashboardStats } from '@/components/admin/DashboardStats';
 import { DashboardStats as DashboardStatsType } from '@/types';
 
@@ -27,10 +27,52 @@ export default function AdminDashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [sending, setSending] = useState<string | null>(null);
+  const [sendResult, setSendResult] = useState<string | null>(null);
 
   useEffect(() => {
     fetchDashboardData();
   }, []);
+
+  const handleSendWorksheets = async () => {
+    if (!confirm('오늘 발송 예정인 학습지를 모든 학습자에게 발송하시겠습니까?')) return;
+
+    setSending('worksheets');
+    setSendResult(null);
+    try {
+      const response = await fetch('/api/send/worksheets', { method: 'POST' });
+      const result = await response.json();
+      if (result.success) {
+        setSendResult(`학습지 발송 완료: ${result.sent || 0}건`);
+      } else {
+        setSendResult(`발송 실패: ${result.error || '알 수 없는 오류'}`);
+      }
+    } catch (err) {
+      setSendResult('발송 중 오류가 발생했습니다.');
+    } finally {
+      setSending(null);
+    }
+  };
+
+  const handleSendReminders = async () => {
+    if (!confirm('미제출 학습자들에게 리마인더를 발송하시겠습니까?')) return;
+
+    setSending('reminders');
+    setSendResult(null);
+    try {
+      const response = await fetch('/api/send/reminders', { method: 'POST' });
+      const result = await response.json();
+      if (result.success) {
+        setSendResult(`리마인더 발송 완료: ${result.sent || 0}건`);
+      } else {
+        setSendResult(`발송 실패: ${result.error || '알 수 없는 오류'}`);
+      }
+    } catch (err) {
+      setSendResult('발송 중 오류가 발생했습니다.');
+    } finally {
+      setSending(null);
+    }
+  };
 
   const fetchDashboardData = async () => {
     try {
@@ -86,6 +128,35 @@ export default function AdminDashboard() {
       <Header title="대시보드" />
       <div className="p-6 space-y-6">
         <DashboardStats stats={stats} />
+
+        {/* 알림톡 발송 버튼 */}
+        <Card>
+          <CardHeader>
+            <CardTitle>알림톡 발송</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-4">
+              <Button
+                onClick={handleSendWorksheets}
+                disabled={sending !== null}
+              >
+                {sending === 'worksheets' ? '발송 중...' : '오늘 학습지 발송'}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleSendReminders}
+                disabled={sending !== null}
+              >
+                {sending === 'reminders' ? '발송 중...' : '미제출 리마인더 발송'}
+              </Button>
+            </div>
+            {sendResult && (
+              <p className={`mt-3 text-sm ${sendResult.includes('실패') || sendResult.includes('오류') ? 'text-red-500' : 'text-green-600'}`}>
+                {sendResult}
+              </p>
+            )}
+          </CardContent>
+        </Card>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card>

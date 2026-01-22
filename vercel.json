@@ -1,10 +1,4 @@
 {
-  "crons": [
-    {
-      "path": "/api/cron/send-worksheets",
-      "schedule": "0 * * * *"
-    }
-  ],
   "headers": [
     {
       "source": "/api/(.*)",
