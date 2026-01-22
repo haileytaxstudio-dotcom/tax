@@ -1,10 +1,17 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import { createClient } from '@supabase/supabase-js';
 import { Button } from './Button';
 
+// 클라이언트용 Supabase 인스턴스
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
+
 interface FileUploadProps {
-  onUpload: (url: string, fileName: string) => void;
+  onUpload: (url: string, fileName?: string) => void;
   folder?: string;
   accept?: string;
   currentUrl?: string;
@@ -31,23 +38,32 @@ export function FileUpload({
     setError(null);
 
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('folder', folder);
+      // 파일 이름 생성
+      const timestamp = Date.now();
+      const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const filePath = `${folder}/${timestamp}-${safeName}`;
 
-      const response = await fetch('/api/file-upload', {
-        method: 'POST',
-        body: formData,
-      });
+      // Supabase Storage에 직접 업로드
+      const { data, error: uploadError } = await supabase.storage
+        .from('files')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false,
+        });
 
-      const result = await response.json();
-
-      if (result.success) {
-        setFileName(result.fileName);
-        onUpload(result.fileUrl, result.fileName);
-      } else {
-        setError(result.error || '업로드에 실패했습니다.');
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        setError(uploadError.message || '업로드에 실패했습니다.');
+        return;
       }
+
+      // 공개 URL 가져오기
+      const { data: urlData } = supabase.storage
+        .from('files')
+        .getPublicUrl(filePath);
+
+      setFileName(file.name);
+      onUpload(urlData.publicUrl, file.name);
     } catch (err) {
       console.error('Upload error:', err);
       setError('파일 업로드 중 오류가 발생했습니다.');
