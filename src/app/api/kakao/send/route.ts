@@ -58,6 +58,16 @@ export async function POST(request: NextRequest) {
       requestData.sender = sender;
     }
 
+    // 발송 요청 데이터 로그 (key는 마스킹)
+    console.log('========== 알림톡 발송 요청 ==========');
+    console.log('템플릿 번호:', templateNo);
+    console.log('수신자 정보:', JSON.stringify(receivers, null, 2));
+    console.log('전체 요청 데이터:', JSON.stringify({
+      ...requestData,
+      key: '***MASKED***',
+    }, null, 2));
+    console.log('======================================');
+
     const response = await fetch(
       'https://directsend.co.kr/index.php/api_v2/kakao_notice',
       {
@@ -72,7 +82,9 @@ export async function POST(request: NextRequest) {
 
     const data = await response.json();
 
-    console.log('DirectSend API 응답:', JSON.stringify(data));
+    console.log('========== 알림톡 발송 응답 ==========');
+    console.log('DirectSend API 응답:', JSON.stringify(data, null, 2));
+    console.log('======================================');
 
     // 상태 코드에 따른 응답 처리 (문자열 또는 숫자 "1" 모두 성공)
     const status = String(data.status);
