@@ -3,37 +3,30 @@ import { createServerSupabaseClient } from '@/lib/supabase';
 
 export const dynamic = 'force-dynamic';
 
-// 오늘 학습지 수동 발송
-export async function POST() {
+// 오늘 학습지 발송 대상자 조회
+export async function GET() {
   const supabase = createServerSupabaseClient();
   const today = new Date().toISOString().split('T')[0];
-  let sentCount = 0;
+  const targets: Array<{ student: any; worksheet: any }> = [];
 
   try {
-    // 활성 학습자들 조회
-    const { data: activeStudents, error: studentsError } = await supabase
+    const { data: activeStudents } = await supabase
       .from('students')
       .select('*')
       .eq('status', 'active')
       .lte('start_date', today);
 
-    if (studentsError) {
-      return NextResponse.json({ success: false, error: studentsError.message }, { status: 500 });
-    }
-
-    if (!activeStudents || activeStudents.length === 0) {
-      return NextResponse.json({ success: true, sent: 0, message: '발송 대상이 없습니다.' });
+    if (!activeStudents) {
+      return NextResponse.json({ targets: [] });
     }
 
     for (const student of activeStudents) {
-      // 학습 시작일로부터 경과한 일수 계산
       const startDate = new Date(student.start_date);
       const todayDate = new Date(today);
       const daysSinceStart = Math.floor(
         (todayDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
       );
 
-      // 오늘 발송해야 할 학습지 조회
       const { data: worksheets } = await supabase
         .from('worksheets')
         .select('*')
@@ -52,7 +45,60 @@ export async function POST() {
             .single();
 
           if (!existingLog) {
-            // 제출물 레코드 생성
+            targets.push({ student, worksheet });
+          }
+        }
+      }
+    }
+
+    return NextResponse.json({ targets });
+  } catch (error) {
+    console.error('대상자 조회 오류:', error);
+    return NextResponse.json({ targets: [], error: '조회 중 오류 발생' });
+  }
+}
+
+// 오늘 학습지 수동 발송
+export async function POST() {
+  const supabase = createServerSupabaseClient();
+  const today = new Date().toISOString().split('T')[0];
+  let sentCount = 0;
+
+  try {
+    const { data: activeStudents } = await supabase
+      .from('students')
+      .select('*')
+      .eq('status', 'active')
+      .lte('start_date', today);
+
+    if (!activeStudents || activeStudents.length === 0) {
+      return NextResponse.json({ success: true, sent: 0, message: '발송 대상이 없습니다.' });
+    }
+
+    for (const student of activeStudents) {
+      const startDate = new Date(student.start_date);
+      const todayDate = new Date(today);
+      const daysSinceStart = Math.floor(
+        (todayDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+      );
+
+      const { data: worksheets } = await supabase
+        .from('worksheets')
+        .select('*')
+        .eq('curriculum_id', student.curriculum_id)
+        .eq('day_offset', daysSinceStart);
+
+      if (worksheets && worksheets.length > 0) {
+        for (const worksheet of worksheets) {
+          const { data: existingLog } = await supabase
+            .from('kakao_logs')
+            .select('id')
+            .eq('student_id', student.id)
+            .eq('message_type', 'worksheet')
+            .gte('created_at', today)
+            .single();
+
+          if (!existingLog) {
             await supabase
               .from('submissions')
               .upsert({
@@ -61,7 +107,6 @@ export async function POST() {
                 status: 'pending',
               }, { onConflict: 'student_id,worksheet_id' });
 
-            // 알림톡 발송
             const templateNo = process.env.KAKAO_TEMPLATE_WORKSHEET;
             if (templateNo) {
               const submitPath = `student/submit/${worksheet.id}`;
@@ -83,7 +128,6 @@ export async function POST() {
 
               const result = await response.json();
 
-              // 발송 로그 저장
               await supabase.from('kakao_logs').insert({
                 student_id: student.id,
                 template_no: templateNo,

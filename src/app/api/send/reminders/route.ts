@@ -3,15 +3,14 @@ import { createServerSupabaseClient } from '@/lib/supabase';
 
 export const dynamic = 'force-dynamic';
 
-// 미제출 리마인더 수동 발송
-export async function POST() {
+// 미제출 리마인더 대상자 조회
+export async function GET() {
   const supabase = createServerSupabaseClient();
   const today = new Date().toISOString().split('T')[0];
-  let sentCount = 0;
+  const targets: Array<{ student: any; worksheet: any }> = [];
 
   try {
-    // 미제출 상태인 제출물 조회
-    const { data: pendingSubmissions, error } = await supabase
+    const { data: pendingSubmissions } = await supabase
       .from('submissions')
       .select(`
         *,
@@ -20,9 +19,52 @@ export async function POST() {
       `)
       .eq('status', 'pending');
 
-    if (error) {
-      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    if (!pendingSubmissions) {
+      return NextResponse.json({ targets: [] });
     }
+
+    for (const submission of pendingSubmissions) {
+      const student = submission.student;
+      const worksheet = submission.worksheet;
+
+      if (!student || !worksheet || student.status !== 'active') continue;
+
+      // 오늘 이미 리마인더 보냈는지 확인
+      const { data: existingReminder } = await supabase
+        .from('kakao_logs')
+        .select('id')
+        .eq('student_id', student.id)
+        .eq('message_type', 'reminder')
+        .gte('created_at', today)
+        .single();
+
+      if (!existingReminder) {
+        targets.push({ student, worksheet });
+      }
+    }
+
+    return NextResponse.json({ targets });
+  } catch (error) {
+    console.error('대상자 조회 오류:', error);
+    return NextResponse.json({ targets: [], error: '조회 중 오류 발생' });
+  }
+}
+
+// 미제출 리마인더 수동 발송
+export async function POST() {
+  const supabase = createServerSupabaseClient();
+  const today = new Date().toISOString().split('T')[0];
+  let sentCount = 0;
+
+  try {
+    const { data: pendingSubmissions } = await supabase
+      .from('submissions')
+      .select(`
+        *,
+        student:students(*),
+        worksheet:worksheets(*)
+      `)
+      .eq('status', 'pending');
 
     if (!pendingSubmissions || pendingSubmissions.length === 0) {
       return NextResponse.json({ success: true, sent: 0, message: '미제출 학습자가 없습니다.' });
@@ -39,7 +81,6 @@ export async function POST() {
 
       if (!student || !worksheet || student.status !== 'active') continue;
 
-      // 오늘 이미 리마인더 보냈는지 확인
       const { data: existingReminder } = await supabase
         .from('kakao_logs')
         .select('id')
@@ -68,7 +109,6 @@ export async function POST() {
 
         const result = await response.json();
 
-        // 발송 로그 저장
         await supabase.from('kakao_logs').insert({
           student_id: student.id,
           template_no: templateNo,

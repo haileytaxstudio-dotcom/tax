@@ -23,19 +23,50 @@ interface DashboardData {
   }>;
 }
 
+interface SendTarget {
+  student: { id: string; name: string; phone: string };
+  worksheet: { id: string; title: string };
+}
+
 export default function AdminDashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState<string | null>(null);
   const [sendResult, setSendResult] = useState<string | null>(null);
+  const [worksheetTargets, setWorksheetTargets] = useState<SendTarget[]>([]);
+  const [reminderTargets, setReminderTargets] = useState<SendTarget[]>([]);
+  const [loadingTargets, setLoadingTargets] = useState(true);
 
   useEffect(() => {
     fetchDashboardData();
+    fetchTargets();
   }, []);
 
+  const fetchTargets = async () => {
+    setLoadingTargets(true);
+    try {
+      const [worksheetRes, reminderRes] = await Promise.all([
+        fetch('/api/send/worksheets'),
+        fetch('/api/send/reminders'),
+      ]);
+      const worksheetData = await worksheetRes.json();
+      const reminderData = await reminderRes.json();
+      setWorksheetTargets(worksheetData.targets || []);
+      setReminderTargets(reminderData.targets || []);
+    } catch (err) {
+      console.error('대상자 조회 오류:', err);
+    } finally {
+      setLoadingTargets(false);
+    }
+  };
+
   const handleSendWorksheets = async () => {
-    if (!confirm('오늘 발송 예정인 학습지를 모든 학습자에게 발송하시겠습니까?')) return;
+    if (worksheetTargets.length === 0) {
+      alert('발송 대상이 없습니다.');
+      return;
+    }
+    if (!confirm(`${worksheetTargets.length}명에게 학습지를 발송하시겠습니까?`)) return;
 
     setSending('worksheets');
     setSendResult(null);
@@ -44,6 +75,7 @@ export default function AdminDashboard() {
       const result = await response.json();
       if (result.success) {
         setSendResult(`학습지 발송 완료: ${result.sent || 0}건`);
+        fetchTargets(); // 목록 새로고침
       } else {
         setSendResult(`발송 실패: ${result.error || '알 수 없는 오류'}`);
       }
@@ -55,7 +87,11 @@ export default function AdminDashboard() {
   };
 
   const handleSendReminders = async () => {
-    if (!confirm('미제출 학습자들에게 리마인더를 발송하시겠습니까?')) return;
+    if (reminderTargets.length === 0) {
+      alert('발송 대상이 없습니다.');
+      return;
+    }
+    if (!confirm(`${reminderTargets.length}명에게 리마인더를 발송하시겠습니까?`)) return;
 
     setSending('reminders');
     setSendResult(null);
@@ -64,6 +100,7 @@ export default function AdminDashboard() {
       const result = await response.json();
       if (result.success) {
         setSendResult(`리마인더 발송 완료: ${result.sent || 0}건`);
+        fetchTargets(); // 목록 새로고침
       } else {
         setSendResult(`발송 실패: ${result.error || '알 수 없는 오류'}`);
       }
@@ -129,34 +166,75 @@ export default function AdminDashboard() {
       <div className="p-6 space-y-6">
         <DashboardStats stats={stats} />
 
-        {/* 알림톡 발송 버튼 */}
-        <Card>
-          <CardHeader>
-            <CardTitle>알림톡 발송</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-4">
+        {/* 알림톡 발송 */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* 오늘 학습지 발송 */}
+          <Card>
+            <CardHeader>
+              <CardTitle>오늘 학습지 발송 ({worksheetTargets.length}명)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loadingTargets ? (
+                <p className="text-gray-500 text-sm">로딩 중...</p>
+              ) : worksheetTargets.length > 0 ? (
+                <div className="space-y-2 mb-4 max-h-48 overflow-y-auto">
+                  {worksheetTargets.map((t, i) => (
+                    <div key={i} className="flex justify-between items-center p-2 bg-gray-50 rounded text-sm">
+                      <span className="font-medium">{t.student.name}</span>
+                      <span className="text-gray-500 text-xs">{t.worksheet.title}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-500 text-sm mb-4">발송 대상이 없습니다.</p>
+              )}
               <Button
                 onClick={handleSendWorksheets}
-                disabled={sending !== null}
+                disabled={sending !== null || worksheetTargets.length === 0}
+                className="w-full"
               >
-                {sending === 'worksheets' ? '발송 중...' : '오늘 학습지 발송'}
+                {sending === 'worksheets' ? '발송 중...' : `학습지 발송 (${worksheetTargets.length}명)`}
               </Button>
+            </CardContent>
+          </Card>
+
+          {/* 미제출 리마인더 발송 */}
+          <Card>
+            <CardHeader>
+              <CardTitle>미제출 리마인더 ({reminderTargets.length}명)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loadingTargets ? (
+                <p className="text-gray-500 text-sm">로딩 중...</p>
+              ) : reminderTargets.length > 0 ? (
+                <div className="space-y-2 mb-4 max-h-48 overflow-y-auto">
+                  {reminderTargets.map((t, i) => (
+                    <div key={i} className="flex justify-between items-center p-2 bg-gray-50 rounded text-sm">
+                      <span className="font-medium">{t.student.name}</span>
+                      <span className="text-gray-500 text-xs">{t.worksheet.title}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-500 text-sm mb-4">미제출 대상이 없습니다.</p>
+              )}
               <Button
                 variant="outline"
                 onClick={handleSendReminders}
-                disabled={sending !== null}
+                disabled={sending !== null || reminderTargets.length === 0}
+                className="w-full"
               >
-                {sending === 'reminders' ? '발송 중...' : '미제출 리마인더 발송'}
+                {sending === 'reminders' ? '발송 중...' : `리마인더 발송 (${reminderTargets.length}명)`}
               </Button>
-            </div>
-            {sendResult && (
-              <p className={`mt-3 text-sm ${sendResult.includes('실패') || sendResult.includes('오류') ? 'text-red-500' : 'text-green-600'}`}>
-                {sendResult}
-              </p>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
+
+        {sendResult && (
+          <div className={`p-3 rounded-lg ${sendResult.includes('실패') || sendResult.includes('오류') ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
+            {sendResult}
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card>
