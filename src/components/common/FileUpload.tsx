@@ -35,7 +35,7 @@ export function FileUpload({
       formData.append('file', file);
       formData.append('folder', folder);
 
-      const response = await fetch('/api/upload', {
+      const response = await fetch('/api/file-upload', {
         method: 'POST',
         body: formData,
       });
