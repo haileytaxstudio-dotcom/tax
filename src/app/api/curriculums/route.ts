@@ -4,8 +4,10 @@ import { createServerSupabaseClient } from '@/lib/supabase';
 export const dynamic = 'force-dynamic';
 
 // 커리큘럼 목록 조회
-export async function GET() {
+export async function GET(request: NextRequest) {
   const supabase = createServerSupabaseClient();
+  const searchParams = request.nextUrl.searchParams;
+  const includeCounts = searchParams.get('include_counts') === 'true';
 
   const { data, error } = await supabase
     .from('curriculums')
@@ -14,6 +16,29 @@ export async function GET() {
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  if (includeCounts && data) {
+    const curriculumsWithCounts = await Promise.all(
+      data.map(async (curriculum) => {
+        const { count: worksheetCount } = await supabase
+          .from('worksheets')
+          .select('*', { count: 'exact', head: true })
+          .eq('curriculum_id', curriculum.id);
+
+        const { count: studentCount } = await supabase
+          .from('students')
+          .select('*', { count: 'exact', head: true })
+          .eq('curriculum_id', curriculum.id);
+
+        return {
+          ...curriculum,
+          worksheetCount: worksheetCount || 0,
+          studentCount: studentCount || 0,
+        };
+      })
+    );
+    return NextResponse.json(curriculumsWithCounts);
   }
 
   return NextResponse.json(data);
