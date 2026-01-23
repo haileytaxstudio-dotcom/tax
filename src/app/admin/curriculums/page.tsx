@@ -162,7 +162,7 @@ export default function CurriculumsPage() {
                         variant="danger"
                         size="sm"
                         onClick={() => handleDelete(curriculum.id)}
-                        disabled={curriculum.studentCount && curriculum.studentCount > 0}
+                        disabled={(curriculum.studentCount ?? 0) > 0}
                       >
                         삭제
                       </Button>
