@@ -49,18 +49,16 @@ export async function GET(request: NextRequest) {
     const today = new Date();
     const daysPassed = Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
 
-    // 학습지 상태 계산
+    // 학습지 상태 계산 (수동 발송 방식이므로 모든 학습지 공개)
     const worksheetStatuses = (worksheets || []).map((worksheet) => {
       const submission = (submissions || []).find(s => s.worksheet_id === worksheet.id);
 
-      let status: 'locked' | 'available' | 'submitted' | 'confirmed';
+      let status: 'available' | 'submitted' | 'confirmed';
 
       if (submission) {
         status = submission.status === 'confirmed' ? 'confirmed' : 'submitted';
-      } else if (daysPassed >= worksheet.day_offset) {
-        status = 'available';
       } else {
-        status = 'locked';
+        status = 'available';
       }
 
       return {
