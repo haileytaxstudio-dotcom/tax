@@ -98,6 +98,32 @@ async function sendNextWorksheet(
 
     if (!currentWorksheet) return;
 
+    // 커리큘럼 정보 조회 (총 학습지 개수 확인)
+    const { data: curriculum } = await supabase
+      .from('curriculums')
+      .select('total_worksheets')
+      .eq('id', student.curriculum_id)
+      .single();
+
+    // 현재까지 제출한 학습지 수 확인
+    const { count: submittedCount } = await supabase
+      .from('submissions')
+      .select('*', { count: 'exact', head: true })
+      .eq('student_id', studentId)
+      .in('status', ['submitted', 'confirmed']);
+
+    // 총 학습지 개수 결정 (설정값 or 실제 등록된 학습지 수)
+    let totalWorksheets: number;
+    if (curriculum?.total_worksheets && curriculum.total_worksheets > 0) {
+      totalWorksheets = curriculum.total_worksheets;
+    } else {
+      const { count } = await supabase
+        .from('worksheets')
+        .select('*', { count: 'exact', head: true })
+        .eq('curriculum_id', student.curriculum_id);
+      totalWorksheets = count || 0;
+    }
+
     // 다음 학습지 조회 (day_offset 기준)
     const { data: nextWorksheet } = await supabase
       .from('worksheets')
@@ -108,7 +134,10 @@ async function sendNextWorksheet(
       .limit(1)
       .single();
 
-    if (!nextWorksheet) {
+    // 마지막 학습지인지 확인 (총 개수에 도달했거나 다음 학습지가 없는 경우)
+    const isLastWorksheet = (submittedCount || 0) >= totalWorksheets || !nextWorksheet;
+
+    if (isLastWorksheet) {
       // 마지막 학습지인 경우 - 과정 완료 알림
       const completeTemplateNo = process.env.KAKAO_TEMPLATE_COMPLETE;
       if (completeTemplateNo) {

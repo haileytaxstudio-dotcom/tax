@@ -12,7 +12,7 @@ export async function PUT(
   const supabase = createServerSupabaseClient();
   const body = await request.json();
 
-  const { name, description } = body;
+  const { name, description, total_worksheets } = body;
 
   if (!name) {
     return NextResponse.json(
@@ -23,7 +23,7 @@ export async function PUT(
 
   const { data, error } = await supabase
     .from('curriculums')
-    .update({ name, description: description || '' })
+    .update({ name, description: description || '', total_worksheets: total_worksheets || 0 })
     .eq('id', id)
     .select()
     .single();

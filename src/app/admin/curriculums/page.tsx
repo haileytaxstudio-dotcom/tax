@@ -7,6 +7,7 @@ interface Curriculum {
   id: string;
   name: string;
   description: string;
+  total_worksheets: number;
   created_at: string;
   worksheetCount?: number;
   studentCount?: number;
@@ -20,6 +21,7 @@ export default function CurriculumsPage() {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
+    total_worksheets: 0,
   });
 
   useEffect(() => {
@@ -95,6 +97,7 @@ export default function CurriculumsPage() {
     setFormData({
       name: curriculum.name,
       description: curriculum.description || '',
+      total_worksheets: curriculum.total_worksheets || 0,
     });
     setIsFormOpen(true);
   };
@@ -102,12 +105,12 @@ export default function CurriculumsPage() {
   const closeModal = () => {
     setIsFormOpen(false);
     setEditingCurriculum(null);
-    setFormData({ name: '', description: '' });
+    setFormData({ name: '', description: '', total_worksheets: 0 });
   };
 
   const handleAdd = () => {
     setEditingCurriculum(null);
-    setFormData({ name: '', description: '' });
+    setFormData({ name: '', description: '', total_worksheets: 0 });
     setIsFormOpen(true);
   };
 
@@ -149,9 +152,9 @@ export default function CurriculumsPage() {
                         <p className="text-sm text-gray-500 mt-1">{curriculum.description}</p>
                       )}
                       <div className="flex gap-4 mt-3 text-sm text-gray-400">
-                        <span>학습지: {curriculum.worksheetCount || 0}개</span>
+                        <span>총 학습지: {curriculum.total_worksheets || curriculum.worksheetCount || 0}개</span>
+                        <span>등록된 학습지: {curriculum.worksheetCount || 0}개</span>
                         <span>학습자: {curriculum.studentCount || 0}명</span>
-                        <span>생성일: {new Date(curriculum.created_at).toLocaleDateString('ko-KR')}</span>
                       </div>
                     </div>
                     <div className="flex gap-2">
@@ -203,6 +206,18 @@ export default function CurriculumsPage() {
                   rows={3}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">총 학습지 개수</label>
+                <input
+                  type="number"
+                  value={formData.total_worksheets || ''}
+                  onChange={(e) => setFormData({ ...formData, total_worksheets: parseInt(e.target.value) || 0 })}
+                  placeholder="0 = 자동 (등록된 학습지 수)"
+                  min={0}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+                <p className="text-xs text-gray-500 mt-1">0으로 설정하면 등록된 학습지 수를 기준으로 과정 완료를 판단합니다.</p>
               </div>
               <div className="flex justify-end gap-2 pt-4">
                 <Button type="button" variant="outline" onClick={closeModal}>

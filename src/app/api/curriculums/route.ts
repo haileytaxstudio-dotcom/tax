@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
   const supabase = createServerSupabaseClient();
   const body = await request.json();
 
-  const { name, description } = body;
+  const { name, description, total_worksheets } = body;
 
   if (!name) {
     return NextResponse.json(
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
 
   const { data, error } = await supabase
     .from('curriculums')
-    .insert({ name, description: description || '' })
+    .insert({ name, description: description || '', total_worksheets: total_worksheets || 0 })
     .select()
     .single();
 
