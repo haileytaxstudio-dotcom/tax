@@ -49,16 +49,25 @@ export async function GET(request: NextRequest) {
     const today = new Date();
     const daysPassed = Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
 
-    // 학습지 상태 계산 (수동 발송 방식이므로 모든 학습지 공개)
-    const worksheetStatuses = (worksheets || []).map((worksheet) => {
+    // 학습지 상태 계산 (순차적 공개: 이전 학습지 제출해야 다음 공개)
+    const sortedWorksheets = (worksheets || []).sort((a, b) => a.day_offset - b.day_offset);
+
+    const worksheetStatuses = sortedWorksheets.map((worksheet, index) => {
       const submission = (submissions || []).find(s => s.worksheet_id === worksheet.id);
 
-      let status: 'available' | 'submitted' | 'confirmed';
+      let status: 'locked' | 'available' | 'submitted' | 'confirmed';
 
       if (submission) {
+        // 제출한 경우
         status = submission.status === 'confirmed' ? 'confirmed' : 'submitted';
-      } else {
+      } else if (index === 0) {
+        // 첫 번째 학습지는 항상 공개
         status = 'available';
+      } else {
+        // 이전 학습지가 제출되었는지 확인
+        const prevWorksheet = sortedWorksheets[index - 1];
+        const prevSubmission = (submissions || []).find(s => s.worksheet_id === prevWorksheet.id);
+        status = prevSubmission ? 'available' : 'locked';
       }
 
       return {

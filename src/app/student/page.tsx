@@ -12,7 +12,7 @@ interface WorksheetStatus {
   description: string;
   fileUrl: string;
   dayOffset: number;
-  status: 'available' | 'submitted' | 'confirmed';
+  status: 'locked' | 'available' | 'submitted' | 'confirmed';
   submittedAt?: string;
 }
 
@@ -116,7 +116,7 @@ export default function StudentDashboard() {
                       )}
                     </div>
                     <div className="flex items-center gap-2">
-                      {worksheet.fileUrl && (
+                      {worksheet.fileUrl && worksheet.status !== 'locked' && (
                         <a
                           href={worksheet.fileUrl}
                           target="_blank"
@@ -156,12 +156,13 @@ export default function StudentDashboard() {
 
 function StatusBadge({ status }: { status: string }) {
   const statusConfig: Record<string, { text: string; className: string }> = {
+    locked: { text: '미공개', className: 'bg-gray-100 text-gray-600' },
     available: { text: '미제출', className: 'bg-yellow-100 text-yellow-700' },
     submitted: { text: '제출완료', className: 'bg-blue-100 text-blue-700' },
     confirmed: { text: '확인완료', className: 'bg-green-100 text-green-700' },
   };
 
-  const config = statusConfig[status] || statusConfig.available;
+  const config = statusConfig[status] || statusConfig.locked;
 
   return (
     <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${config.className}`}>
