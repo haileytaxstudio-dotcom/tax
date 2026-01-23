@@ -52,21 +52,26 @@ export async function GET(request: NextRequest) {
     // 학습지 상태 계산 (순차적 공개: 이전 학습지 제출해야 다음 공개)
     const sortedWorksheets = (worksheets || []).sort((a, b) => a.day_offset - b.day_offset);
 
+    // 실제 제출된 것만 필터 (pending 제외)
+    const actualSubmissions = (submissions || []).filter(
+      s => s.status === 'submitted' || s.status === 'confirmed'
+    );
+
     const worksheetStatuses = sortedWorksheets.map((worksheet, index) => {
       const submission = (submissions || []).find(s => s.worksheet_id === worksheet.id);
 
       let status: 'locked' | 'available' | 'submitted' | 'confirmed';
 
-      if (submission) {
-        // 제출한 경우
+      if (submission && (submission.status === 'submitted' || submission.status === 'confirmed')) {
+        // 실제 제출한 경우
         status = submission.status === 'confirmed' ? 'confirmed' : 'submitted';
       } else if (index === 0) {
         // 첫 번째 학습지는 항상 공개
         status = 'available';
       } else {
-        // 이전 학습지가 제출되었는지 확인
+        // 이전 학습지가 실제 제출되었는지 확인 (pending 제외)
         const prevWorksheet = sortedWorksheets[index - 1];
-        const prevSubmission = (submissions || []).find(s => s.worksheet_id === prevWorksheet.id);
+        const prevSubmission = actualSubmissions.find(s => s.worksheet_id === prevWorksheet.id);
         status = prevSubmission ? 'available' : 'locked';
       }
 
