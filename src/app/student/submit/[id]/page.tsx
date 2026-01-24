@@ -71,7 +71,6 @@ export default function SubmitPage({ params }: SubmitPageProps) {
           student_id: student.id,
           worksheet_id: worksheet.id,
           file_url: formData.file_url,
-          notes: formData.notes,
         }),
       });
 
