@@ -182,8 +182,8 @@ async function sendNextWorksheet(
         status: 'pending',
       }, { onConflict: 'student_id,worksheet_id' });
 
-    // 다음 학습지 알림톡 발송
-    const templateNo = process.env.KAKAO_TEMPLATE_WORKSHEET;
+    // 다음 학습지 알림톡 발송 (KAKAO_TEMPLATE_NEXT 또는 기본값 8)
+    const templateNo = process.env.KAKAO_TEMPLATE_NEXT || '8';
     if (!templateNo) return;
 
     const submitPath = `student/submit/${nextWorksheet.id}`;
