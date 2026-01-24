@@ -11,6 +11,7 @@ interface WorksheetStatus {
   worksheetTitle: string;
   description: string;
   fileUrl: string;
+  examUrl: string;
   dayOffset: number;
   status: 'locked' | 'available' | 'submitted' | 'confirmed';
   submittedAt?: string;
@@ -115,16 +116,28 @@ export default function StudentDashboard() {
                         </p>
                       )}
                     </div>
-                    <div className="flex items-center gap-2">
-                      {worksheet.fileUrl && worksheet.status !== 'locked' && (
-                        <a
-                          href={worksheet.fileUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="px-3 py-1.5 text-sm text-blue-600 hover:text-blue-700 border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors"
-                        >
-                          학습지
-                        </a>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {worksheet.status !== 'locked' && (
+                        <>
+                          {worksheet.fileUrl && (
+                            <a
+                              href={worksheet.fileUrl}
+                              download
+                              className="px-3 py-1.5 text-sm text-green-600 hover:text-green-700 border border-green-300 rounded-lg hover:bg-green-50 transition-colors"
+                            >
+                              암기노트
+                            </a>
+                          )}
+                          {worksheet.examUrl && (
+                            <a
+                              href={worksheet.examUrl}
+                              download
+                              className="px-3 py-1.5 text-sm text-purple-600 hover:text-purple-700 border border-purple-300 rounded-lg hover:bg-purple-50 transition-colors"
+                            >
+                              시험지
+                            </a>
+                          )}
+                        </>
                       )}
                       {worksheet.status === 'available' && (
                         <Link

@@ -8,6 +8,7 @@ interface Worksheet {
   title: string;
   description: string;
   file_url: string;
+  exam_url: string;
   day_offset: number;
   send_time: string;
   reminder_hours: number;
@@ -31,6 +32,7 @@ export default function WorksheetsPage() {
     title: '',
     description: '',
     file_url: '',
+    exam_url: '',
     day_offset: 1,
     send_time: '09:00',
     reminder_hours: 24,
@@ -123,6 +125,7 @@ export default function WorksheetsPage() {
       title: worksheet.title,
       description: worksheet.description || '',
       file_url: worksheet.file_url || '',
+      exam_url: worksheet.exam_url || '',
       day_offset: worksheet.day_offset,
       send_time: worksheet.send_time || '09:00',
       reminder_hours: worksheet.reminder_hours,
@@ -138,6 +141,7 @@ export default function WorksheetsPage() {
       title: '',
       description: '',
       file_url: '',
+      exam_url: '',
       day_offset: worksheets.length + 1,
       send_time: '09:00',
       reminder_hours: 24,
@@ -151,6 +155,7 @@ export default function WorksheetsPage() {
       title: '',
       description: '',
       file_url: '',
+      exam_url: '',
       day_offset: worksheets.length + 1,
       send_time: '09:00',
       reminder_hours: 24,
@@ -284,13 +289,23 @@ export default function WorksheetsPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">학습지 파일</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">암기노트 파일</label>
                 <FileUpload
                   folder="worksheets"
                   accept=".pdf,.doc,.docx,.hwp,.ppt,.pptx"
                   currentUrl={formData.file_url}
-                  label="파일 선택"
+                  label="암기노트 선택"
                   onUpload={(url) => setFormData({ ...formData, file_url: url })}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">시험지 파일</label>
+                <FileUpload
+                  folder="worksheets"
+                  accept=".pdf,.doc,.docx,.hwp,.ppt,.pptx"
+                  currentUrl={formData.exam_url}
+                  label="시험지 선택"
+                  onUpload={(url) => setFormData({ ...formData, exam_url: url })}
                 />
               </div>
               <div className="flex justify-end gap-2 pt-4">

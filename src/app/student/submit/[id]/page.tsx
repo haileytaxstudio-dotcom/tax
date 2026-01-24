@@ -28,7 +28,6 @@ export default function SubmitPage({ params }: SubmitPageProps) {
   const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     file_url: '',
-    notes: '',
   });
 
   useEffect(() => {
@@ -141,19 +140,6 @@ export default function SubmitPage({ params }: SubmitPageProps) {
               <p className="text-xs text-gray-500 mt-2">
                 PDF, Word, 한글, 이미지 파일을 업로드할 수 있습니다.
               </p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                메모 (선택)
-              </label>
-              <textarea
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                placeholder="질문이나 코멘트가 있으시면 작성해주세요."
-                rows={4}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
             </div>
 
             <div className="flex justify-end gap-2 pt-4">

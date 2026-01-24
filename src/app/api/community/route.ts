@@ -8,13 +8,21 @@ export async function GET() {
   const supabase = createServerSupabaseClient();
 
   try {
-    // 전체 학습자 통계
+    // 전체 학습자 조회
     const { data: students } = await supabase
       .from('students')
-      .select('id, curriculum_id');
+      .select('id, name, curriculum_id')
+      .eq('status', 'active')
+      .order('name', { ascending: true });
 
     // 각 학습자별 진행률 계산
-    const progressList: number[] = [];
+    const studentsWithProgress: Array<{
+      id: string;
+      name: string;
+      progress: number;
+      completedCount: number;
+      totalCount: number;
+    }> = [];
 
     if (students && students.length > 0) {
       for (const student of students) {
@@ -29,15 +37,21 @@ export async function GET() {
           .eq('student_id', student.id)
           .in('status', ['submitted', 'confirmed']);
 
-        if (worksheetCount && worksheetCount > 0) {
-          const progress = Math.round(((submissionCount || 0) / worksheetCount) * 100);
-          progressList.push(progress);
-        } else {
-          progressList.push(0);
-        }
+        const total = worksheetCount || 0;
+        const completed = submissionCount || 0;
+        const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+        studentsWithProgress.push({
+          id: student.id,
+          name: student.name,
+          progress,
+          completedCount: completed,
+          totalCount: total,
+        });
       }
     }
 
+    const progressList = studentsWithProgress.map(s => s.progress);
     const averageProgress = progressList.length > 0
       ? Math.round(progressList.reduce((a, b) => a + b, 0) / progressList.length)
       : 0;
@@ -51,31 +65,11 @@ export async function GET() {
       { range: '0-24%', count: progressList.filter(p => p < 25).length },
     ];
 
-    // 최근 제출물 (확인된 것만)
-    const { data: recentSubmissions } = await supabase
-      .from('submissions')
-      .select(`
-        id,
-        submitted_at,
-        student:students(name),
-        worksheet:worksheets(title)
-      `)
-      .eq('status', 'confirmed')
-      .order('submitted_at', { ascending: false })
-      .limit(10);
-
-    const submissions = (recentSubmissions || []).map((s: any) => ({
-      id: s.id,
-      studentName: s.student?.name || '익명',
-      worksheetTitle: s.worksheet?.title || '학습지',
-      submittedAt: s.submitted_at,
-    }));
-
     return NextResponse.json({
       totalStudents: students?.length || 0,
       averageProgress,
       progressDistribution,
-      recentSubmissions: submissions,
+      students: studentsWithProgress,
     });
   } catch (error) {
     console.error('커뮤니티 데이터 조회 오류:', error);

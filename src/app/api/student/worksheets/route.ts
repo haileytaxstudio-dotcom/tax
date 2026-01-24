@@ -80,6 +80,7 @@ export async function GET(request: NextRequest) {
         worksheetTitle: worksheet.title,
         description: worksheet.description,
         fileUrl: worksheet.file_url,
+        examUrl: worksheet.exam_url,
         dayOffset: worksheet.day_offset,
         status,
         submittedAt: submission?.submitted_at,
