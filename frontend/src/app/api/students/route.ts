@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
     .select('id')
     .eq('phone', phone.replace(/-/g, ''))
     .eq('curriculum_id', curriculum_id)
-    .single();
+    .maybeSingle();
 
   if (existing) {
     return NextResponse.json(
@@ -88,6 +88,14 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (error) {
+    console.error('학생 등록 오류:', error);
+    // UNIQUE 제약조건 위반 오류 처리
+    if (error.code === '23505') {
+      return NextResponse.json(
+        { error: '이미 등록된 정보입니다. Supabase에서 phone 컬럼의 UNIQUE 제약조건을 제거해주세요.' },
+        { status: 400 }
+      );
+    }
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
