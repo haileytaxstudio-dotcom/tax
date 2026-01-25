@@ -42,20 +42,13 @@ export async function PATCH(
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // 확인 완료 시 알림톡 발송
+  // 확인 완료 시 처리 (알림톡 발송 제거됨)
   if (status === 'confirmed' && data.students && data.worksheets) {
     const student = data.students;
-    const worksheet = data.worksheets;
-
-    // "확인 완료" 알림 발송
-    await sendKakaoNotification(supabase, student, 'confirm', worksheet);
 
     // 전체 과정 완료 여부 확인
     const isCompleted = await checkCourseCompletion(supabase, student.id, student.curriculum_id);
     if (isCompleted) {
-      // "과정 완료" 알림 발송
-      await sendKakaoNotification(supabase, student, 'complete', worksheet);
-
       // 학생 상태를 완료로 변경
       await supabase
         .from('students')
