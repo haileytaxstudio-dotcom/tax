@@ -60,16 +60,17 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // 전화번호 중복 체크
+  // 같은 전화번호 + 같은 과정 중복 체크 (같은 사람이 다른 과정은 수강 가능)
   const { data: existing } = await supabase
     .from('students')
     .select('id')
     .eq('phone', phone.replace(/-/g, ''))
+    .eq('curriculum_id', curriculum_id)
     .single();
 
   if (existing) {
     return NextResponse.json(
-      { error: '이미 등록된 전화번호입니다.' },
+      { error: '이미 해당 과정에 등록된 전화번호입니다.' },
       { status: 400 }
     );
   }

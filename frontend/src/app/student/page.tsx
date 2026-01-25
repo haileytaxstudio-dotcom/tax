@@ -43,12 +43,17 @@ export default function StudentDashboard() {
 
     try {
       const response = await fetch(`/api/student/worksheets?student_id=${student.id}`);
+      const result = await response.json();
+
       if (response.ok) {
-        const result = await response.json();
         setData(result);
+      } else {
+        console.error('학습지 로딩 오류:', result.error);
+        setData({ worksheets: [], progress: 0, completedCount: 0, totalCount: 0, daysPassed: 0 });
       }
     } catch (error) {
       console.error('학습지 로딩 오류:', error);
+      setData({ worksheets: [], progress: 0, completedCount: 0, totalCount: 0, daysPassed: 0 });
     } finally {
       setLoading(false);
     }

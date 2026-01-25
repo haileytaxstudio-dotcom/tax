@@ -162,6 +162,7 @@ export default function StudentsPage() {
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">이름</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">연락처</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">과정</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">학습 시작일</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">진행률</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">상태</th>
@@ -176,6 +177,9 @@ export default function StudentsPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-500">{student.phone}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-blue-600 font-medium">{student.curriculum?.name || '-'}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-500">{formatDate(student.start_date)}</div>
