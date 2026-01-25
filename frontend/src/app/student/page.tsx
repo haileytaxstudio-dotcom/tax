@@ -81,7 +81,7 @@ export default function StudentDashboard() {
           안녕하세요, {student.name}님
         </h1>
         <p className="text-gray-500">
-          {student.curriculum?.name || '세무 학습 과정'}을 학습 중입니다.
+          {student.curriculum?.name || '세무사 헤일리의 암기노트'} 과정을 학습 중입니다.
         </p>
       </div>
 
