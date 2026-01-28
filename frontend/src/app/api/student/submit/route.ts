@@ -193,7 +193,7 @@ async function checkIfFinalWorksheet(
   return !nextWorksheet;
 }
 
-// 다음 학습지 알림톡 발송
+// 다음 학습지 준비 (알림톡 발송 없이 레코드만 생성)
 async function sendNextWorksheet(
   supabase: ReturnType<typeof createServerSupabaseClient>,
   studentId: string,
@@ -218,32 +218,6 @@ async function sendNextWorksheet(
 
     if (!currentWorksheet) return;
 
-    // 커리큘럼 정보 조회 (총 학습지 개수 확인)
-    const { data: curriculum } = await supabase
-      .from('curriculums')
-      .select('total_worksheets')
-      .eq('id', student.curriculum_id)
-      .single();
-
-    // 현재까지 제출한 학습지 수 확인
-    const { count: submittedCount } = await supabase
-      .from('submissions')
-      .select('*', { count: 'exact', head: true })
-      .eq('student_id', studentId)
-      .in('status', ['submitted', 'confirmed']);
-
-    // 총 학습지 개수 결정 (설정값 or 실제 등록된 학습지 수)
-    let totalWorksheets: number;
-    if (curriculum?.total_worksheets && curriculum.total_worksheets > 0) {
-      totalWorksheets = curriculum.total_worksheets;
-    } else {
-      const { count } = await supabase
-        .from('worksheets')
-        .select('*', { count: 'exact', head: true })
-        .eq('curriculum_id', student.curriculum_id);
-      totalWorksheets = count || 0;
-    }
-
     // 다음 학습지 조회 (day_offset 기준)
     const { data: nextWorksheet } = await supabase
       .from('worksheets')
@@ -254,46 +228,17 @@ async function sendNextWorksheet(
       .limit(1)
       .single();
 
-    // 마지막 학습지인지 확인 (총 개수에 도달했거나 다음 학습지가 없는 경우)
-    const isLastWorksheet = (submittedCount || 0) >= totalWorksheets || !nextWorksheet;
-
-    if (isLastWorksheet) {
-      // 마지막 학습지인 경우 - 과정 완료 알림
-      const completeTemplateNo = process.env.KAKAO_TEMPLATE_COMPLETE;
-      if (completeTemplateNo) {
-        await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/kakao/send`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            templateNo: completeTemplateNo,
-            receivers: [{
-              name: student.name,
-              mobile: student.phone,
-              note1: 'student',
-              note2: currentWorksheet.title,
-              note3: student.name,
-            }],
-          }),
-        });
-
-        await supabase.from('kakao_logs').insert({
-          student_id: studentId,
-          template_no: completeTemplateNo,
-          message_type: 'complete',
-          status: 'success',
-          response: { message: '과정 완료 알림 발송' },
-        });
-
-        // 학생 상태 완료로 변경
-        await supabase
-          .from('students')
-          .update({ status: 'completed' })
-          .eq('id', studentId);
-      }
+    // 마지막 학습지인 경우 학생 상태 완료로 변경
+    if (!nextWorksheet) {
+      await supabase
+        .from('students')
+        .update({ status: 'completed' })
+        .eq('id', studentId);
+      console.log('과정 완료:', student.name);
       return;
     }
 
-    // 다음 학습지 제출물 레코드 생성
+    // 다음 학습지 제출물 레코드 생성 (pending 상태)
     await supabase
       .from('submissions')
       .upsert({
@@ -302,40 +247,8 @@ async function sendNextWorksheet(
         status: 'pending',
       }, { onConflict: 'student_id,worksheet_id' });
 
-    // 다음 학습지 알림톡 발송 (KAKAO_TEMPLATE_NEXT 또는 기본값 8)
-    const templateNo = process.env.KAKAO_TEMPLATE_NEXT || '8';
-    if (!templateNo) return;
-
-    const submitPath = `student/submit/${nextWorksheet.id}`;
-
-    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/kakao/send`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        templateNo,
-        receivers: [{
-          name: student.name,
-          mobile: student.phone,
-          note1: submitPath,
-          note2: nextWorksheet.title,
-          note3: student.name,
-        }],
-      }),
-    });
-
-    const result = await response.json();
-
-    // 발송 로그 저장
-    await supabase.from('kakao_logs').insert({
-      student_id: studentId,
-      template_no: templateNo,
-      message_type: 'worksheet',
-      status: result.success ? 'success' : 'failed',
-      response: result,
-    });
-
-    console.log('다음 학습지 발송:', nextWorksheet.title, result.success ? '성공' : '실패');
+    console.log('다음 학습지 준비 완료:', nextWorksheet.title);
   } catch (error) {
-    console.error('다음 학습지 발송 오류:', error);
+    console.error('다음 학습지 준비 오류:', error);
   }
 }
