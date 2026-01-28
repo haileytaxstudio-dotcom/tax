@@ -96,6 +96,41 @@ async function checkCourseCompletion(
   return totalCount > 0 && (confirmedCount || 0) >= totalCount;
 }
 
+// 답안 삭제
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  const supabase = createServerSupabaseClient();
+
+  // 제출물 존재 확인
+  const { data: submission, error: fetchError } = await supabase
+    .from('submissions')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (fetchError || !submission) {
+    return NextResponse.json(
+      { error: '제출물을 찾을 수 없습니다.' },
+      { status: 404 }
+    );
+  }
+
+  // 제출물 삭제
+  const { error } = await supabase
+    .from('submissions')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ success: true, message: '제출물이 삭제되었습니다.' });
+}
+
 // 카카오 알림톡 발송 함수
 async function sendKakaoNotification(
   supabase: ReturnType<typeof createServerSupabaseClient>,

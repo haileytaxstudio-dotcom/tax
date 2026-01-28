@@ -91,6 +91,26 @@ export default function SubmissionsPage() {
     }
   };
 
+  const handleDelete = async (submissionId: string, studentName: string) => {
+    if (!confirm(`${studentName}님의 답안을 삭제하시겠습니까?`)) return;
+
+    try {
+      const response = await fetch(`/api/admin/submissions/${submissionId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        alert('답안이 삭제되었습니다.');
+        await fetchSubmissions();
+      } else {
+        alert('삭제에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('삭제 오류:', error);
+      alert('삭제 중 오류가 발생했습니다.');
+    }
+  };
+
   return (
     <div>
       <Header title="답안 관리" />
@@ -177,6 +197,12 @@ export default function SubmissionsPage() {
                           확인 완료
                         </Button>
                       )}
+                      <button
+                        onClick={() => handleDelete(submission.id, submission.students?.name || '알 수 없음')}
+                        className="px-3 py-1.5 text-sm text-red-600 hover:text-red-700 border border-red-300 rounded-lg hover:bg-red-50 transition-colors"
+                      >
+                        삭제
+                      </button>
                     </div>
                   </div>
                 </CardContent>
