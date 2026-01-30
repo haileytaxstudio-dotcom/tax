@@ -8,48 +8,59 @@ export async function GET() {
   const supabase = createServerSupabaseClient();
 
   try {
-    // 전체 학습자 조회
-    const { data: students } = await supabase
-      .from('students')
-      .select('id, name, curriculum_id')
-      .eq('status', 'active')
-      .order('name', { ascending: true });
+    // 3개 쿼리를 병렬로 실행
+    const [studentsResult, worksheetsResult, submissionsResult] = await Promise.all([
+      // 1. 전체 학습자 조회
+      supabase
+        .from('students')
+        .select('id, name, curriculum_id')
+        .eq('status', 'active')
+        .order('name', { ascending: true }),
+      // 2. 전체 학습지 조회 (curriculum별 개수 계산용)
+      supabase
+        .from('worksheets')
+        .select('curriculum_id'),
+      // 3. 제출된 답안 조회 (학습자별 개수 계산용)
+      supabase
+        .from('submissions')
+        .select('student_id')
+        .in('status', ['submitted', 'confirmed']),
+    ]);
 
-    // 각 학습자별 진행률 계산
-    const studentsWithProgress: Array<{
-      id: string;
-      name: string;
-      progress: number;
-      completedCount: number;
-      totalCount: number;
-    }> = [];
+    const students = studentsResult.data || [];
+    const worksheets = worksheetsResult.data || [];
+    const submissions = submissionsResult.data || [];
 
-    if (students && students.length > 0) {
-      for (const student of students) {
-        const { count: worksheetCount } = await supabase
-          .from('worksheets')
-          .select('*', { count: 'exact', head: true })
-          .eq('curriculum_id', student.curriculum_id);
-
-        const { count: submissionCount } = await supabase
-          .from('submissions')
-          .select('*', { count: 'exact', head: true })
-          .eq('student_id', student.id)
-          .in('status', ['submitted', 'confirmed']);
-
-        const total = worksheetCount || 0;
-        const completed = submissionCount || 0;
-        const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
-
-        studentsWithProgress.push({
-          id: student.id,
-          name: student.name,
-          progress,
-          completedCount: completed,
-          totalCount: total,
-        });
+    // curriculum별 학습지 개수 계산
+    const worksheetCountMap = new Map<string, number>();
+    for (const ws of worksheets) {
+      if (ws.curriculum_id) {
+        worksheetCountMap.set(ws.curriculum_id, (worksheetCountMap.get(ws.curriculum_id) || 0) + 1);
       }
     }
+
+    // 학습자별 제출 개수 계산
+    const submissionCountMap = new Map<string, number>();
+    for (const sub of submissions) {
+      if (sub.student_id) {
+        submissionCountMap.set(sub.student_id, (submissionCountMap.get(sub.student_id) || 0) + 1);
+      }
+    }
+
+    // 학습자별 진행률 계산
+    const studentsWithProgress = students.map((student) => {
+      const total = student.curriculum_id ? (worksheetCountMap.get(student.curriculum_id) || 0) : 0;
+      const completed = submissionCountMap.get(student.id) || 0;
+      const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+      return {
+        id: student.id,
+        name: student.name,
+        progress,
+        completedCount: completed,
+        totalCount: total,
+      };
+    });
 
     const progressList = studentsWithProgress.map(s => s.progress);
     const averageProgress = progressList.length > 0
