@@ -24,20 +24,7 @@ export async function GET(request: NextRequest) {
   const results: Array<{ studentId: string; worksheetId: string; success: boolean; error?: string }> = [];
 
   try {
-    // 1. 오늘 학습 시작인 학습자들에게 시작 알림 발송
-    const { data: startingStudents } = await supabase
-      .from('students')
-      .select('*')
-      .eq('start_date', today)
-      .eq('status', 'active');
-
-    if (startingStudents && startingStudents.length > 0) {
-      for (const student of startingStudents) {
-        await sendKakaoNotification(student, 'start', null);
-      }
-    }
-
-    // 2. 활성 학습자들에게 오늘 발송 예정인 학습지 발송
+    // 활성 학습자들에게 오늘 발송 예정인 학습지 발송
     const { data: activeStudents } = await supabase
       .from('students')
       .select(`
