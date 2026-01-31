@@ -34,7 +34,6 @@ export default function AdminDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState<string | null>(null);
   const [sendResult, setSendResult] = useState<string | null>(null);
-  const [worksheetTargets, setWorksheetTargets] = useState<SendTarget[]>([]);
   const [reminderTargets, setReminderTargets] = useState<SendTarget[]>([]);
   const [loadingTargets, setLoadingTargets] = useState(true);
 
@@ -46,43 +45,13 @@ export default function AdminDashboard() {
   const fetchTargets = async () => {
     setLoadingTargets(true);
     try {
-      const [worksheetRes, reminderRes] = await Promise.all([
-        fetch('/api/send/worksheets'),
-        fetch('/api/send/reminders'),
-      ]);
-      const worksheetData = await worksheetRes.json();
+      const reminderRes = await fetch('/api/send/reminders');
       const reminderData = await reminderRes.json();
-      setWorksheetTargets(worksheetData.targets || []);
       setReminderTargets(reminderData.targets || []);
     } catch (err) {
       console.error('대상자 조회 오류:', err);
     } finally {
       setLoadingTargets(false);
-    }
-  };
-
-  const handleSendWorksheets = async () => {
-    if (worksheetTargets.length === 0) {
-      alert('발송 대상이 없습니다.');
-      return;
-    }
-    if (!confirm(`${worksheetTargets.length}명에게 학습지를 발송하시겠습니까?`)) return;
-
-    setSending('worksheets');
-    setSendResult(null);
-    try {
-      const response = await fetch('/api/send/worksheets', { method: 'POST' });
-      const result = await response.json();
-      if (result.success) {
-        setSendResult(`학습지 발송 완료: ${result.sent || 0}건`);
-        fetchTargets(); // 목록 새로고침
-      } else {
-        setSendResult(`발송 실패: ${result.error || '알 수 없는 오류'}`);
-      }
-    } catch (err) {
-      setSendResult('발송 중 오류가 발생했습니다.');
-    } finally {
-      setSending(null);
     }
   };
 
@@ -168,36 +137,6 @@ export default function AdminDashboard() {
 
         {/* 알림톡 발송 */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* 오늘 학습지 발송 */}
-          <Card>
-            <CardHeader>
-              <CardTitle>오늘 학습지 발송 ({worksheetTargets.length}명)</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {loadingTargets ? (
-                <p className="text-gray-500 text-sm">로딩 중...</p>
-              ) : worksheetTargets.length > 0 ? (
-                <div className="space-y-2 mb-4 max-h-48 overflow-y-auto">
-                  {worksheetTargets.map((t, i) => (
-                    <div key={i} className="flex justify-between items-center p-2 bg-gray-50 rounded text-sm">
-                      <span className="font-medium">{t.student.name}</span>
-                      <span className="text-gray-500 text-xs">{t.worksheet.title}</span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-gray-500 text-sm mb-4">발송 대상이 없습니다.</p>
-              )}
-              <Button
-                onClick={handleSendWorksheets}
-                disabled={sending !== null || worksheetTargets.length === 0}
-                className="w-full"
-              >
-                {sending === 'worksheets' ? '발송 중...' : `학습지 발송 (${worksheetTargets.length}명)`}
-              </Button>
-            </CardContent>
-          </Card>
-
           {/* 미제출 리마인더 발송 */}
           <Card>
             <CardHeader>
