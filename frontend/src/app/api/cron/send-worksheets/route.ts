@@ -24,7 +24,20 @@ export async function GET(request: NextRequest) {
   const results: Array<{ studentId: string; worksheetId: string; success: boolean; error?: string }> = [];
 
   try {
-    // 활성 학습자들에게 오늘 발송 예정인 학습지 발송
+    // 1. 오늘 학습 시작인 학습자들에게 시작 알림 발송 (17번 템플릿)
+    const { data: startingStudents } = await supabase
+      .from('students')
+      .select('*')
+      .eq('start_date', today)
+      .eq('status', 'active');
+
+    if (startingStudents && startingStudents.length > 0) {
+      for (const student of startingStudents) {
+        await sendKakaoNotification(student, 'start', null);
+      }
+    }
+
+    // 2. 활성 학습자들에게 오늘 발송 예정인 학습지 pending 생성 (알림톡 발송 없음)
     const { data: activeStudents } = await supabase
       .from('students')
       .select(`
@@ -70,7 +83,7 @@ export async function GET(request: NextRequest) {
               .single();
 
             if (!existingLog) {
-              // 제출물 레코드 생성 (pending 상태)
+              // 제출물 레코드 생성 (pending 상태) - 미제출자 관리용
               await supabase
                 .from('submissions')
                 .upsert({
@@ -79,14 +92,7 @@ export async function GET(request: NextRequest) {
                   status: 'pending',
                 }, { onConflict: 'student_id,worksheet_id' });
 
-              // 알림톡 발송
-              const result = await sendKakaoNotification(student, 'worksheet', worksheet);
-              results.push({
-                studentId: student.id,
-                worksheetId: worksheet.id,
-                success: result.success,
-                error: result.error,
-              });
+              // 5번 알림톡 발송 제거됨 - 제출 완료 시 20번 템플릿에서 다음 학습지 안내
             }
           }
         }
