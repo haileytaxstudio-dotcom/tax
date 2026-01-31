@@ -17,7 +17,8 @@ export async function GET(request: NextRequest) {
 
   const supabase = createServerSupabaseClient();
   const now = new Date();
-  const today = now.toISOString().split('T')[0];
+  // 한국 시간 기준 현재 날짜 (YYYY-MM-DD 형식)
+  const today = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' });
   // 한국 시간 기준 현재 시각 (HH:00 형식)
   const koreaTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
   const currentHour = koreaTime.getHours().toString().padStart(2, '0') + ':00';

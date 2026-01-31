@@ -6,7 +6,8 @@ export const dynamic = 'force-dynamic';
 // 미제출 리마인더 대상자 조회
 export async function GET() {
   const supabase = createServerSupabaseClient();
-  const today = new Date().toISOString().split('T')[0];
+  // 한국 시간 기준 현재 날짜
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' });
   const targets: Array<{ student: any; worksheet: any }> = [];
 
   try {
@@ -53,7 +54,8 @@ export async function GET() {
 // 미제출 리마인더 수동 발송
 export async function POST() {
   const supabase = createServerSupabaseClient();
-  const today = new Date().toISOString().split('T')[0];
+  // 한국 시간 기준 현재 날짜
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' });
   let sentCount = 0;
 
   try {

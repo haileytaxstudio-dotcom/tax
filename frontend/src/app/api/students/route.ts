@@ -99,8 +99,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // 시작일이 오늘인 경우에만 알림톡 발송
-  const today = new Date().toISOString().split('T')[0];
+  // 시작일이 오늘인 경우에만 알림톡 발송 (한국 시간 기준)
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' });
   if (start_date === today) {
     await sendWelcomeNotification(supabase, data);
   }
