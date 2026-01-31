@@ -93,43 +93,6 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // 3. 미제출 알림 발송 (reminder_hours 경과한 경우)
-    const { data: pendingSubmissions } = await supabase
-      .from('submissions')
-      .select(`
-        *,
-        student:students(*),
-        worksheet:worksheets(*)
-      `)
-      .eq('status', 'pending');
-
-    if (pendingSubmissions) {
-      for (const submission of pendingSubmissions) {
-        const worksheet = submission.worksheet;
-        const student = submission.student;
-
-        if (!worksheet || !student || student.status !== 'active') continue;
-
-        const createdAt = new Date(submission.created_at);
-        const hoursSinceCreated = (Date.now() - createdAt.getTime()) / (1000 * 60 * 60);
-
-        if (hoursSinceCreated >= worksheet.reminder_hours) {
-          // 오늘 이미 리마인더 보냈는지 확인
-          const { data: existingReminder } = await supabase
-            .from('kakao_logs')
-            .select('id')
-            .eq('student_id', student.id)
-            .eq('message_type', 'reminder')
-            .gte('created_at', today)
-            .single();
-
-          if (!existingReminder) {
-            await sendKakaoNotification(student, 'reminder', worksheet);
-          }
-        }
-      }
-    }
-
     return NextResponse.json({
       success: true,
       message: '학습지 발송 작업이 완료되었습니다.',
