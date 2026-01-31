@@ -239,13 +239,14 @@ async function sendNextWorksheet(
     }
 
     // 다음 학습지 제출물 레코드 생성 (pending 상태)
+    // ignoreDuplicates: 이미 존재하는 레코드(submitted/confirmed)를 덮어쓰지 않음
     await supabase
       .from('submissions')
       .upsert({
         student_id: studentId,
         worksheet_id: nextWorksheet.id,
         status: 'pending',
-      }, { onConflict: 'student_id,worksheet_id' });
+      }, { onConflict: 'student_id,worksheet_id', ignoreDuplicates: true });
 
     console.log('다음 학습지 준비 완료:', nextWorksheet.title);
   } catch (error) {

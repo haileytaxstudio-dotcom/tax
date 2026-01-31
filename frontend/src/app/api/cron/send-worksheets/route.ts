@@ -85,13 +85,14 @@ export async function GET(request: NextRequest) {
 
             if (!existingLog) {
               // 제출물 레코드 생성 (pending 상태) - 미제출자 관리용
+              // ignoreDuplicates: 이미 존재하는 레코드(submitted/confirmed)를 덮어쓰지 않음
               await supabase
                 .from('submissions')
                 .upsert({
                   student_id: student.id,
                   worksheet_id: worksheet.id,
                   status: 'pending',
-                }, { onConflict: 'student_id,worksheet_id' });
+                }, { onConflict: 'student_id,worksheet_id', ignoreDuplicates: true });
 
               // 5번 알림톡 발송 제거됨 - 제출 완료 시 20번 템플릿에서 다음 학습지 안내
             }
