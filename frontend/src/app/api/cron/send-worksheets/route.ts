@@ -4,7 +4,7 @@ import { createServerSupabaseClient } from '@/lib/supabase';
 export const dynamic = 'force-dynamic';
 
 // Vercel Cron에서 호출되는 학습지 자동 발송 API
-// 매 시간 정각에 실행: cron: "0 * * * *"
+// 매일 KST 08:00에 실행 (vercel.json: "0 23 * * *")
 export async function GET(request: NextRequest) {
   // Cron 시크릿 검증 (선택적)
   const authHeader = request.headers.get('authorization');
@@ -19,9 +19,6 @@ export async function GET(request: NextRequest) {
   const now = new Date();
   // 한국 시간 기준 현재 날짜 (YYYY-MM-DD 형식)
   const today = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' });
-  // 한국 시간 기준 현재 시각 (HH:00 형식)
-  const koreaTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
-  const currentHour = koreaTime.getHours().toString().padStart(2, '0') + ':00';
   const results: Array<{ studentId: string; worksheetId: string; success: boolean; error?: string }> = [];
 
   try {
@@ -57,23 +54,15 @@ export async function GET(request: NextRequest) {
           (todayDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
         );
 
-        // 오늘 발송해야 할 학습지 조회 (발송 시간 체크)
+        // 오늘 발송해야 할 학습지 조회
         const { data: worksheets } = await supabase
           .from('worksheets')
           .select('*')
           .eq('curriculum_id', student.curriculum_id)
           .eq('day_offset', daysSinceStart);
 
-        // 발송 시간이 현재 시간과 일치하는 학습지만 필터링
-        const worksheetsToSend = worksheets?.filter(w => {
-          const sendTime = w.send_time || '09:00';
-          // HH:00 형식으로 변환하여 비교
-          const sendHour = sendTime.substring(0, 2) + ':00';
-          return sendHour === currentHour;
-        }) || [];
-
-        if (worksheetsToSend.length > 0) {
-          for (const worksheet of worksheetsToSend) {
+        if (worksheets && worksheets.length > 0) {
+          for (const worksheet of worksheets) {
             // 이미 발송했는지 확인 (kakao_logs 테이블)
             const { data: existingLog } = await supabase
               .from('kakao_logs')
