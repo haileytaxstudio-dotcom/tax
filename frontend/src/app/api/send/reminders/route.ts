@@ -24,24 +24,30 @@ export async function GET() {
       return NextResponse.json({ targets: [] });
     }
 
+    // 오늘 이미 리마인더 보낸 전화번호 조회 (phone 기준 중복 방지)
+    const { data: todayReminders } = await supabase
+      .from('kakao_logs')
+      .select('student:students(phone)')
+      .eq('message_type', 'reminder')
+      .gte('created_at', today);
+
+    const alreadySentPhones = new Set(
+      todayReminders?.map((log: any) => log.student?.phone).filter(Boolean) || []
+    );
+
+    const processedPhones = new Set<string>();
+
     for (const submission of pendingSubmissions) {
       const student = submission.student;
       const worksheet = submission.worksheet;
 
       if (!student || !worksheet || student.status !== 'active') continue;
 
-      // 오늘 이미 리마인더 보냈는지 확인
-      const { data: existingReminder } = await supabase
-        .from('kakao_logs')
-        .select('id')
-        .eq('student_id', student.id)
-        .eq('message_type', 'reminder')
-        .gte('created_at', today)
-        .single();
+      // 같은 전화번호에 이미 발송했거나 이번 루프에서 처리했으면 스킵
+      if (alreadySentPhones.has(student.phone) || processedPhones.has(student.phone)) continue;
 
-      if (!existingReminder) {
-        targets.push({ student, worksheet });
-      }
+      processedPhones.add(student.phone);
+      targets.push({ student, worksheet });
     }
 
     return NextResponse.json({ targets });
@@ -77,50 +83,58 @@ export async function POST() {
       return NextResponse.json({ success: false, error: '리마인더 템플릿이 설정되지 않았습니다.' }, { status: 500 });
     }
 
+    // 오늘 이미 리마인더 보낸 전화번호 조회 (phone 기준 중복 방지)
+    const { data: todayReminderLogs } = await supabase
+      .from('kakao_logs')
+      .select('student:students(phone)')
+      .eq('message_type', 'reminder')
+      .gte('created_at', today);
+
+    const alreadySentPhones = new Set(
+      todayReminderLogs?.map((log: any) => log.student?.phone).filter(Boolean) || []
+    );
+
+    const processedPhones = new Set<string>();
+
     for (const submission of pendingSubmissions) {
       const student = submission.student;
       const worksheet = submission.worksheet;
 
       if (!student || !worksheet || student.status !== 'active') continue;
 
-      const { data: existingReminder } = await supabase
-        .from('kakao_logs')
-        .select('id')
-        .eq('student_id', student.id)
-        .eq('message_type', 'reminder')
-        .gte('created_at', today)
-        .single();
+      // 같은 전화번호에 이미 발송했거나 이번 루프에서 처리했으면 스킵
+      if (alreadySentPhones.has(student.phone) || processedPhones.has(student.phone)) continue;
 
-      if (!existingReminder) {
-        const submitPath = `student/submit/${worksheet.id}`;
+      processedPhones.add(student.phone);
 
-        const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/kakao/send`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            templateNo,
-            receivers: [{
-              name: student.name,
-              mobile: student.phone,
-              note1: submitPath,
-              note2: worksheet.title,
-              note3: student.name,
-            }],
-          }),
-        });
+      const submitPath = `student/submit/${worksheet.id}`;
 
-        const result = await response.json();
+      const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/kakao/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          templateNo,
+          receivers: [{
+            name: student.name,
+            mobile: student.phone,
+            note1: submitPath,
+            note2: worksheet.title,
+            note3: student.name,
+          }],
+        }),
+      });
 
-        await supabase.from('kakao_logs').insert({
-          student_id: student.id,
-          template_no: templateNo,
-          message_type: 'reminder',
-          status: result.success ? 'success' : 'failed',
-          response: result,
-        });
+      const result = await response.json();
 
-        if (result.success) sentCount++;
-      }
+      await supabase.from('kakao_logs').insert({
+        student_id: student.id,
+        template_no: templateNo,
+        message_type: 'reminder',
+        status: result.success ? 'success' : 'failed',
+        response: result,
+      });
+
+      if (result.success) sentCount++;
     }
 
     return NextResponse.json({
