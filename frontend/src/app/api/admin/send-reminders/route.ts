@@ -26,6 +26,7 @@ export async function POST(request: Request) {
     }
 
     let sentCount = 0;
+    const sentPhones = new Set<string>();
 
     for (const target of targets) {
       const { studentId, worksheetId } = target;
@@ -45,6 +46,10 @@ export async function POST(request: Request) {
         .single();
 
       if (!student || !worksheet) continue;
+
+      // 같은 전화번호에 이미 발송했으면 스킵
+      if (sentPhones.has(student.phone)) continue;
+      sentPhones.add(student.phone);
 
       const submitPath = `student/submit/${worksheetId}`;
 

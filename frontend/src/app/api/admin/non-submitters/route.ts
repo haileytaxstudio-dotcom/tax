@@ -57,10 +57,20 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // 경과일 기준 내림차순 정렬
-    nonSubmitters.sort((a, b) => b.daysSinceWorksheet - a.daysSinceWorksheet);
+    // phone 기준으로 중복 제거 (가장 오래된 미제출 건만 유지)
+    const phoneMap = new Map<string, typeof nonSubmitters[0]>();
+    for (const item of nonSubmitters) {
+      const existing = phoneMap.get(item.student.phone);
+      if (!existing || item.daysSinceWorksheet > existing.daysSinceWorksheet) {
+        phoneMap.set(item.student.phone, item);
+      }
+    }
+    const dedupedNonSubmitters = Array.from(phoneMap.values());
 
-    return NextResponse.json({ nonSubmitters });
+    // 경과일 기준 내림차순 정렬
+    dedupedNonSubmitters.sort((a, b) => b.daysSinceWorksheet - a.daysSinceWorksheet);
+
+    return NextResponse.json({ nonSubmitters: dedupedNonSubmitters });
   } catch (error) {
     console.error('미제출자 조회 오류:', error);
     return NextResponse.json(
