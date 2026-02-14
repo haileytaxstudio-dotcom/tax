@@ -30,7 +30,10 @@ export async function GET(request: NextRequest) {
       .eq('status', 'active');
 
     if (startingStudents && startingStudents.length > 0) {
+      const sentPhones = new Set<string>();
       for (const student of startingStudents) {
+        if (sentPhones.has(student.phone)) continue;
+        sentPhones.add(student.phone);
         await sendKakaoNotification(student, 'start', null);
       }
     }
