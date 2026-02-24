@@ -124,7 +124,7 @@ export default function StudentDashboard() {
                       )}
                     </div>
                     <div className="flex items-center gap-2 flex-wrap">
-                      {worksheet.fileUrl && (
+                      {worksheet.status !== 'locked' && worksheet.fileUrl && (
                         <a
                           href={`/api/download?url=${encodeURIComponent(worksheet.fileUrl)}&filename=${encodeURIComponent(worksheet.worksheetTitle + '_암기노트')}`}
                           className="px-3 py-1.5 text-sm text-green-600 hover:text-green-700 border border-green-300 rounded-lg hover:bg-green-50 transition-colors"
@@ -132,7 +132,7 @@ export default function StudentDashboard() {
                           암기노트
                         </a>
                       )}
-                      {worksheet.examUrl && (
+                      {worksheet.status !== 'locked' && worksheet.examUrl && (
                         <a
                           href={`/api/download?url=${encodeURIComponent(worksheet.examUrl)}&filename=${encodeURIComponent(worksheet.worksheetTitle + '_시험지')}`}
                           className="px-3 py-1.5 text-sm text-purple-600 hover:text-purple-700 border border-purple-300 rounded-lg hover:bg-purple-50 transition-colors"
