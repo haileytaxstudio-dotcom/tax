@@ -1,3 +1,5 @@
+import { NextResponse } from "next/server";
+
 export function middleware() {
-  return new Response("점검 중입니다.", { status: 503 });
+  return NextResponse.redirect("https://hailey-lms.vercel.app/", 301);
 }
